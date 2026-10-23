@@ -8,6 +8,7 @@ It features comprehensive daily transaction management (Expenses, Income, and Tr
 
 ## 🛠️ Technology Stack
 
+- **Mobile**: React Native, Expo SDK, TypeScript, Expo Router, Expo SecureStore
 - **Frontend**: React 18, Vite, Vanilla CSS Design System with CSS Custom Properties, Lucide Icons
 - **Backend**: Python 3.11+, FastAPI, Uvicorn, Pydantic v2
 - **Database & ORM**: PostgreSQL / SQLite fallback, SQLAlchemy 2.0 ORM, Alembic migrations
@@ -29,31 +30,16 @@ Pocket-Ledger/
 ├── docs/
 │   └── ARCHITECTURE.md       # Full architecture & domain design documentation
 │
-├── backend/
-│   ├── app/
-│   │   ├── main.py           # Canonical FastAPI entrypoint & route aggregator
-│   │   ├── core/             # Database connection, JWT security, and settings
-│   │   ├── models/           # SQLAlchemy Declarative Models (User, Wallet, Expense, Income, Budget)
-│   │   ├── schemas/          # Pydantic v2 input/output validation contracts
-│   │   ├── services/         # Pure business logic (Wallet balances, CSV, Budgeting)
-│   │   ├── routers/          # REST API endpoints (Auth, Transactions, Wallets, Insights)
-│   │   └── api/v1/           # Master versioned API aggregator
-│   ├── tests/                # Automated pytest suite (Auth, Wallets, Transactions, Budgets)
-│   ├── requirements.txt      # Production Python dependencies
-│   └── requirements-dev.txt  # Testing & developer dependencies
+├── backend/                  # FastAPI Backend API & Database models
 │
-└── frontend/
-    ├── src/
-    │   ├── main.jsx          # React DOM bootstrap
-    │   ├── App.jsx           # Master feature router & application controller
-    │   ├── api/              # Canonical API client layer (authApi, transactionApi, walletApi)
-    │   ├── components/       # Layouts, Sidebar, Header, Modals, Forms, Tables, Filter Drawer
-    │   ├── pages/            # Canonical pages (Dashboard, Transactions, Wallets, Settings, Login, Register)
-    │   ├── hooks/            # useExpenses central state and synchronization hook
-    │   ├── context/          # Modular state context slices
-    │   └── utils/            # Multi-currency formatters, date shifting, and CSV parser
-    ├── package.json
-    └── vite.config.js
+├── frontend/                 # React 18 + Vite Web Application
+│
+└── mobile/                   # React Native + Expo Mobile Application
+    ├── app/                  # Expo Router file-based navigation
+    ├── src/                  # Components, Context, Services, Theme, Types
+    ├── app.json              # Expo application manifest
+    ├── package.json          # Mobile dependencies
+    └── README.md             # Mobile setup & network configuration
 ```
 
 ---
