@@ -10,7 +10,6 @@ import {
   Wallet,
   Transaction,
   InsightsSummary,
-  Budget,
   Category,
   TransactionCreateInput,
   TransactionUpdateInput,
@@ -30,7 +29,6 @@ interface AppContextValue {
   wallets: Wallet[];
   transactions: Transaction[];
   insights: InsightsSummary | null;
-  budget: Budget | null;
   categories: Category[];
   currency: string;
 
@@ -69,8 +67,7 @@ interface AppContextValue {
   updateTransaction: (id: number, data: TransactionUpdateInput) => Promise<Transaction>;
   deleteTransaction: (id: number, type?: string) => Promise<void>;
 
-  // Budget & Currency Operations
-  updateBudget: (targetAmount: number) => Promise<Budget>;
+  // Currency Operations
   updateCurrency: (code: string) => Promise<void>;
 }
 
@@ -82,7 +79,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [insights, setInsights] = useState<InsightsSummary | null>(null);
-  const [budget, setBudget] = useState<Budget | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [currency, setCurrencyState] = useState<string>('INR');
 
@@ -128,15 +124,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [monthKey]);
 
-  // Fetch financial insights & budget
+  // Fetch financial insights
   const refreshInsights = useCallback(async () => {
     try {
-      const [insightsData, budgetData] = await Promise.all([
-        api.insights.getSummary(monthKey).catch(() => null),
-        api.insights.getBudget(monthKey).catch(() => null),
-      ]);
+      const insightsData = await api.insights.getSummary(monthKey).catch(() => null);
       if (insightsData) setInsights(insightsData);
-      if (budgetData) setBudget(budgetData);
     } catch (err: any) {
       console.warn('[AppContext] Failed to fetch insights:', err.message);
     }
@@ -246,14 +238,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await Promise.all([refreshTransactions(), refreshWallets(), refreshInsights()]);
   };
 
-  // Budget operation
-  const updateBudget = async (targetAmount: number): Promise<Budget> => {
-    const b = await api.insights.setBudget(monthKey, targetAmount);
-    setBudget(b);
-    await refreshInsights();
-    return b;
-  };
-
   // Currency operation
   const updateCurrency = async (code: string): Promise<void> => {
     setCurrencyState(code);
@@ -273,7 +257,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         wallets,
         transactions,
         insights,
-        budget,
         categories,
         currency,
         monthState,
@@ -299,7 +282,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createTransaction,
         updateTransaction,
         deleteTransaction,
-        updateBudget,
         updateCurrency,
       }}
     >

@@ -25,6 +25,8 @@ export interface Wallet {
   wallet_type: 'BANK' | 'WALLET' | 'UPI' | 'DIGITAL' | 'CASH' | 'CREDIT_CARD' | string;
   initial_balance?: number;
   current_balance: number;
+  balance?: number;
+  is_default?: boolean;
   color?: string;
   user_id?: number | null;
   created_at?: string;

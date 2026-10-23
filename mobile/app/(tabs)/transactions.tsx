@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
 // Pocket Ledger Mobile - Unified Transactions Ledger Screen
+// Features Advanced Filter Drawer matching the web app.
 // ---------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react';
@@ -22,6 +23,7 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/Header';
 import { FilterChips } from '../../src/components/FilterChips';
+import { FilterDrawerModal, FilterState } from '../../src/components/FilterDrawerModal';
 import { TransactionItem } from '../../src/components/TransactionItem';
 import { EmptyState } from '../../src/components/EmptyState';
 import { api } from '../../src/services/api';
@@ -35,7 +37,8 @@ export default function TransactionsScreen() {
   const {
     transactions,
     currency,
-    budget,
+    wallets,
+    categories,
     insights,
     monthKey,
     isRefreshing,
@@ -44,11 +47,44 @@ export default function TransactionsScreen() {
   } = useApp();
 
   const [search, setSearch] = useState('');
-  const [selectedType, setSelectedType] = useState('all');
-  const [selectedCategory, setSelectedCategory] = useState('All');
   const [exporting, setExporting] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
-  // Type filter options
+  // Advanced Filter State matching Web FilterDrawer
+  const [filters, setFilters] = useState<FilterState>({
+    type: 'all',
+    category: 'All',
+    walletId: 'all',
+    minAmount: '',
+    maxAmount: '',
+    startDate: '',
+    endDate: '',
+  });
+
+  // Calculate active filter count
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.type !== 'all') count++;
+    if (filters.category !== 'All') count++;
+    if (filters.walletId !== 'all') count++;
+    if (filters.minAmount.trim()) count++;
+    if (filters.maxAmount.trim()) count++;
+    if (filters.startDate.trim()) count++;
+    if (filters.endDate.trim()) count++;
+    return count;
+  }, [filters]);
+
+  // Combined list of categories
+  const allCategoryNames = useMemo(() => {
+    const set = new Set<string>();
+    categories.forEach((c) => set.add(c.name));
+    transactions.forEach((t) => {
+      if (t.category) set.add(t.category);
+    });
+    return Array.from(set);
+  }, [categories, transactions]);
+
+  // Quick type filter options
   const typeFilterOptions = [
     { id: 'all', label: 'All' },
     { id: 'expense', label: 'Expenses' },
@@ -56,31 +92,48 @@ export default function TransactionsScreen() {
     { id: 'transfer', label: 'Transfers' },
   ];
 
-  // Dynamically extract categories present in current month transactions
-  const categoryOptions = useMemo(() => {
-    const set = new Set<string>();
-    transactions.forEach((t) => {
-      if (t.category) set.add(t.category);
-    });
-    return [{ id: 'All', label: 'All Categories' }, ...Array.from(set).map((c) => ({ id: c, label: c }))];
-  }, [transactions]);
-
-  // Client-side filtering
+  // Client-side filtering applying all criteria
   const filteredTransactions = useMemo(() => {
     return transactions.filter((tx) => {
       // 1. Type match
-      if (selectedType !== 'all') {
-        if (selectedType === 'expense' && tx.type !== 'expense') return false;
-        if (selectedType === 'income' && tx.type !== 'income') return false;
-        if (selectedType === 'transfer' && tx.type !== 'transfer') return false;
+      if (filters.type !== 'all') {
+        const tType = (tx.type || '').toLowerCase();
+        if (filters.type === 'expense' && tType !== 'expense') return false;
+        if (filters.type === 'income' && tType !== 'income') return false;
+        if (filters.type === 'transfer' && tType !== 'transfer') return false;
       }
 
       // 2. Category match
-      if (selectedCategory !== 'All' && tx.category !== selectedCategory) {
+      if (filters.category !== 'All' && tx.category !== filters.category) {
         return false;
       }
 
-      // 3. Search match
+      // 3. Wallet match
+      if (filters.walletId !== 'all' && String(tx.wallet_id) !== filters.walletId) {
+        return false;
+      }
+
+      // 4. Min Amount
+      if (filters.minAmount.trim()) {
+        const min = parseFloat(filters.minAmount);
+        if (!isNaN(min) && Number(tx.amount || 0) < min) return false;
+      }
+
+      // 5. Max Amount
+      if (filters.maxAmount.trim()) {
+        const max = parseFloat(filters.maxAmount);
+        if (!isNaN(max) && Number(tx.amount || 0) > max) return false;
+      }
+
+      // 6. Date Range
+      if (filters.startDate.trim() && tx.date) {
+        if (tx.date < filters.startDate.trim()) return false;
+      }
+      if (filters.endDate.trim() && tx.date) {
+        if (tx.date > filters.endDate.trim()) return false;
+      }
+
+      // 7. Search match
       if (search.trim()) {
         const q = search.toLowerCase();
         const noteMatch = (tx.note || tx.title || '').toLowerCase().includes(q);
@@ -92,48 +145,19 @@ export default function TransactionsScreen() {
 
       return true;
     });
-  }, [transactions, selectedType, selectedCategory, search]);
+  }, [transactions, filters, search]);
 
-  // Expenses-specific metrics matching web Expenses.jsx
-  const expenseTransactions = useMemo(() => transactions.filter((t) => t.type === 'expense'), [transactions]);
-  const totalSpentMonth = useMemo(() => expenseTransactions.reduce((sum, t) => sum + Number(t.amount || 0), 0), [expenseTransactions]);
-  const budgetTarget = budget?.target_amount || insights?.budget_target || 20000;
-  const budgetLeft = budgetTarget - totalSpentMonth;
-  const biggestExpenseCategory = useMemo(() => {
-    const map: Record<string, number> = {};
-    expenseTransactions.forEach((t) => {
-      if (t.category) map[t.category] = (map[t.category] || 0) + Number(t.amount || 0);
+  const handleResetFilters = () => {
+    setFilters({
+      type: 'all',
+      category: 'All',
+      walletId: 'all',
+      minAmount: '',
+      maxAmount: '',
+      startDate: '',
+      endDate: '',
     });
-    let maxCat = 'None yet';
-    let maxAmt = 0;
-    for (const cat in map) {
-      if (map[cat] > maxAmt) {
-        maxAmt = map[cat];
-        maxCat = cat;
-      }
-    }
-    return maxCat;
-  }, [expenseTransactions]);
-
-  // Income-specific metrics matching web Income.jsx
-  const incomeTransactions = useMemo(() => transactions.filter((t) => t.type === 'income'), [transactions]);
-  const totalIncomeMonth = useMemo(() => incomeTransactions.reduce((sum, t) => sum + Number(t.amount || 0), 0), [incomeTransactions]);
-  const topIncomeSource = useMemo(() => {
-    const map: Record<string, number> = {};
-    incomeTransactions.forEach((t) => {
-      if (t.category) map[t.category] = (map[t.category] || 0) + Number(t.amount || 0);
-    });
-    let maxCat = 'None yet';
-    let maxAmt = 0;
-    for (const cat in map) {
-      if (map[cat] > maxAmt) {
-        maxAmt = map[cat];
-        maxCat = cat;
-      }
-    }
-    return maxCat;
-  }, [incomeTransactions]);
-  const avgIncome = incomeTransactions.length > 0 ? totalIncomeMonth / incomeTransactions.length : 0;
+  };
 
   // Handle Export CSV
   const handleExportCsv = async () => {
@@ -193,11 +217,15 @@ export default function TransactionsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
-      <Header subtitle="Unified Financial Ledger" />
+      <Header
+        subtitle="Unified Financial Ledger"
+        onPressFilter={() => setIsFilterModalOpen(true)}
+        activeFilterCount={activeFilterCount}
+      />
 
       {/* Search and Action Bar */}
-      <View style={[styles.searchBarContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <View style={[styles.searchInputWrapper, { backgroundColor: theme.inputBg, borderColor: theme.border }]}>
+      <View style={styles.searchBarContainer}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="search-outline" size={18} color={theme.textMuted} style={{ marginRight: 8 }} />
           <TextInput
             placeholder="Search notes, categories, wallets..."
@@ -212,6 +240,39 @@ export default function TransactionsScreen() {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {/* Filter Button with Funnel Icon and Badge (Matching Web filter-btn) */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => setIsFilterModalOpen(true)}
+          style={[
+            styles.actionBtn,
+            styles.filterBtn,
+            {
+              backgroundColor: activeFilterCount > 0 ? theme.primarySoft : theme.surfaceMuted,
+              borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
+            },
+          ]}
+        >
+          <Ionicons
+            name="filter"
+            size={18}
+            color={activeFilterCount > 0 ? theme.primary : theme.text}
+          />
+          <Text
+            style={[
+              styles.filterBtnText,
+              { color: activeFilterCount > 0 ? theme.primary : theme.text },
+            ]}
+          >
+            Filter
+          </Text>
+          {activeFilterCount > 0 ? (
+            <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
 
         {/* Export CSV Button */}
         <TouchableOpacity
@@ -233,101 +294,40 @@ export default function TransactionsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Filter Chips Bar */}
+      {/* Active Filter Banner (Matching Web indicator) */}
+      {activeFilterCount > 0 ? (
+        <View style={[styles.activeFilterBanner, { backgroundColor: theme.primarySoft, borderColor: theme.primary }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+            <Ionicons name="funnel" size={14} color={theme.primary} />
+            <Text style={[styles.activeFilterText, { color: theme.text }]} numberOfLines={1}>
+              {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active • {filteredTransactions.length} result{filteredTransactions.length === 1 ? '' : 's'}
+            </Text>
+          </View>
+          <TouchableOpacity onPress={handleResetFilters} activeOpacity={0.7}>
+            <Text style={[styles.clearFilterText, { color: theme.primary }]}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {/* Quick Type Chips Bar */}
       <View style={[styles.filtersContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
         <FilterChips
           options={typeFilterOptions}
-          selectedId={selectedType}
-          onSelect={setSelectedType}
+          selectedId={filters.type}
+          onSelect={(type) => setFilters({ ...filters, type })}
         />
-
-        {categoryOptions.length > 2 ? (
-          <View style={{ marginTop: 4 }}>
-            <FilterChips
-              options={categoryOptions}
-              selectedId={selectedCategory}
-              onSelect={setSelectedCategory}
-            />
-          </View>
-        ) : null}
       </View>
 
       {/* Transaction List */}
       <FlatList
         data={filteredTransactions}
         keyExtractor={(item) => `${item.type}-${item.id}`}
-        ListHeaderComponent={
-          selectedType === 'expense' ? (
-            <View style={styles.kpiContainer}>
-              <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Spent this month</Text>
-                  <Text style={[styles.kpiValue, { color: theme.danger }]}>
-                    -{formatCurrency(totalSpentMonth, currency)}
-                  </Text>
-                </View>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Left in budget</Text>
-                  <Text style={[styles.kpiValue, { color: budgetLeft >= 0 ? theme.success : theme.danger }]}>
-                    {budgetLeft >= 0 ? '+' : '-'}
-                    {formatCurrency(Math.abs(budgetLeft), currency)}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Transactions</Text>
-                  <Text style={[styles.kpiValue, { color: theme.text }]}>
-                    {expenseTransactions.length}
-                  </Text>
-                </View>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Biggest category</Text>
-                  <Text style={[styles.kpiValue, { color: theme.warning }]} numberOfLines={1}>
-                    {biggestExpenseCategory}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : selectedType === 'income' ? (
-            <View style={styles.kpiContainer}>
-              <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Income this month</Text>
-                  <Text style={[styles.kpiValue, { color: theme.success }]}>
-                    +{formatCurrency(totalIncomeMonth, currency)}
-                  </Text>
-                </View>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Top source</Text>
-                  <Text style={[styles.kpiValue, { color: theme.primary }]} numberOfLines={1}>
-                    {topIncomeSource}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Transactions</Text>
-                  <Text style={[styles.kpiValue, { color: theme.text }]}>
-                    {incomeTransactions.length}
-                  </Text>
-                </View>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>Average income</Text>
-                  <Text style={[styles.kpiValue, { color: theme.success }]}>
-                    {formatCurrency(avgIncome, currency)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ) : undefined
-        }
         renderItem={({ item }) => (
           <TransactionItem
             transaction={item}
             currency={currency}
-            onPress={handleTransactionPress}
-            onLongPress={handleTransactionLongPress}
+            onPress={() => handleTransactionPress(item)}
+            onLongPress={() => handleTransactionLongPress(item)}
           />
         )}
         contentContainerStyle={styles.listContent}
@@ -339,25 +339,60 @@ export default function TransactionsScreen() {
             tintColor={theme.primary}
           />
         }
+        ListHeaderComponent={
+          insights ? (
+            <View style={styles.kpiContainer}>
+              <View style={styles.kpiRow}>
+                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
+                  <Text style={[styles.kpiValue, { color: theme.success }]}>
+                    {formatCurrency(insights.total_income, currency)}
+                  </Text>
+                </View>
+                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
+                  <Text style={[styles.kpiValue, { color: theme.danger }]}>
+                    {formatCurrency(insights.total_spent, currency)}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          ) : undefined
+        }
         ListEmptyComponent={
           <EmptyState
             icon="receipt-outline"
-            title="No Matching Transactions"
-            description={search ? 'No records match your search filter.' : 'No transactions recorded for this month.'}
-            actionTitle="+ New Transaction"
-            onAction={() => router.push('/modal/transaction')}
+            title="No transactions found"
+            description={
+              activeFilterCount > 0 || search
+                ? 'Try adjusting your search terms or clearing your filters.'
+                : 'Tap the + button to record your first transaction.'
+            }
           />
         }
       />
 
-      {/* Floating Add Button */}
+      {/* Floating Action Button (+ Transaction) */}
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => router.push('/modal/transaction')}
-        style={[styles.fab, { backgroundColor: theme.primary, shadowColor: theme.primary }]}
+        style={[styles.fab, { backgroundColor: theme.primary }]}
       >
         <Ionicons name="add" size={28} color="#ffffff" />
       </TouchableOpacity>
+
+      {/* Filter Drawer Modal */}
+      <FilterDrawerModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        filters={filters}
+        onUpdateFilters={setFilters}
+        onResetFilters={handleResetFilters}
+        wallets={wallets}
+        categories={allCategoryNames}
+        totalMatches={filteredTransactions.length}
+        currency={currency}
+      />
     </SafeAreaView>
   );
 }
@@ -371,30 +406,72 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    gap: Spacing.sm,
+    gap: 8,
   },
   searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 40,
-    borderRadius: Radii.md,
+    height: 42,
     borderWidth: 1,
+    borderRadius: Radii.md,
     paddingHorizontal: Spacing.md,
   },
   searchInput: {
     flex: 1,
-    fontSize: Typography.sizes.sm,
     height: '100%',
+    fontSize: Typography.sizes.sm,
   },
   actionBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: Radii.md,
+    width: 42,
+    height: 42,
     borderWidth: 1,
+    borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    width: 'auto',
+    paddingHorizontal: 12,
+    gap: 6,
+    position: 'relative',
+  },
+  filterBtnText: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.semibold,
+  },
+  filterBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: Typography.weights.extrabold,
+  },
+  activeFilterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  activeFilterText: {
+    fontSize: 12,
+    fontWeight: Typography.weights.medium,
+  },
+  clearFilterText: {
+    fontSize: 12,
+    fontWeight: Typography.weights.bold,
   },
   filtersContainer: {
     paddingHorizontal: Spacing.lg,

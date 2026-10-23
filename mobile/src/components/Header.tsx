@@ -11,20 +11,59 @@ import { useAuth } from '../context/AuthContext';
 import { formatMonthLabel } from '../utils/dateUtils';
 import { Spacing, Radii, Typography } from '../theme';
 
+import { Alert, Platform } from 'react-native';
+import { useRouter } from 'expo-router';
+
 export interface HeaderProps {
   title?: string;
   subtitle?: string;
   showMonthSwitcher?: boolean;
+  onPressFilter?: () => void;
+  activeFilterCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   title = 'Pocket Ledger',
   subtitle,
   showMonthSwitcher = true,
+  onPressFilter,
+  activeFilterCount = 0,
 }) => {
+  const router = useRouter();
   const { theme } = useTheme();
   const { monthState, goToPreviousMonth, goToNextMonth, isRefreshing, refreshAll } = useApp();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+
+  const handleAvatarPress = () => {
+    const doLogout = async () => {
+      try {
+        await logout();
+        router.replace('/login');
+      } catch (err: any) {
+        Alert.alert('Error', err?.message || 'Failed to logout');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Signed in as ${user?.email || 'User'}\n\nDo you want to log out?`)) {
+        doLogout();
+      }
+      return;
+    }
+
+    Alert.alert(
+      user?.full_name || 'My Account',
+      `${user?.email || 'Active Session'}\n\nWould you like to sign out?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: doLogout,
+        },
+      ]
+    );
+  };
 
   const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'P';
 
@@ -44,6 +83,32 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
 
         <View style={styles.actionsContainer}>
+          {onPressFilter ? (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={onPressFilter}
+              style={[
+                styles.iconButton,
+                {
+                  backgroundColor: activeFilterCount > 0 ? theme.primarySoft : theme.surfaceMuted,
+                  borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
+                  borderWidth: activeFilterCount > 0 ? 1 : 0,
+                },
+              ]}
+            >
+              <Ionicons
+                name="filter"
+                size={18}
+                color={activeFilterCount > 0 ? theme.primary : theme.textSecondary}
+              />
+              {activeFilterCount > 0 ? (
+                <View style={[styles.headerBadge, { backgroundColor: theme.primary }]}>
+                  <Text style={styles.headerBadgeText}>{activeFilterCount}</Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          ) : null}
+
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={refreshAll}
@@ -56,9 +121,13 @@ export const Header: React.FC<HeaderProps> = ({
             />
           </TouchableOpacity>
 
-          <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleAvatarPress}
+            style={[styles.avatar, { backgroundColor: theme.primary }]}
+          >
             <Text style={styles.avatarText}>{userInitial}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -135,6 +204,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
+    position: 'relative',
+  },
+  headerBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 3,
+  },
+  headerBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: Typography.weights.extrabold,
   },
   avatar: {
     width: 34,

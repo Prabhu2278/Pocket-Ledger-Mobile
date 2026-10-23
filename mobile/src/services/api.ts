@@ -25,9 +25,14 @@ import {
 } from '../types';
 
 // Resolve Backend Base URL based on environment, platform, and device type
-const DEFAULT_LAN_URL = 'http://192.168.1.37:8000';
+const DEFAULT_LAN_URL = 'http://192.168.1.37:9000';
 
 export function getApiBaseUrl(): string {
+  // If running in a web browser on desktop, connect to localhost:9000
+  if (Platform.OS === 'web') {
+    return 'http://localhost:9000';
+  }
+
   // If running in Expo Go on a physical phone, Constants.expoConfig?.hostUri has the PC's LAN IP
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest?.debuggerHost || '';
   const hostIp = hostUri ? hostUri.split(':')[0] : null;
@@ -37,9 +42,12 @@ export function getApiBaseUrl(): string {
     let cleanUrl = envUrl.trim().replace(/\/$/, '');
 
     // Never use 10.0.2.2 or localhost on a physical mobile device
-    if (cleanUrl.includes('10.0.2.2') || cleanUrl.includes('localhost')) {
+    if (cleanUrl.includes('10.0.2.2') || cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) {
       const targetIp = hostIp || '192.168.1.37';
-      cleanUrl = cleanUrl.replace('10.0.2.2', targetIp).replace('localhost', targetIp);
+      cleanUrl = cleanUrl
+        .replace('10.0.2.2', targetIp)
+        .replace('localhost', targetIp)
+        .replace('127.0.0.1', targetIp);
     }
 
     return cleanUrl;
@@ -47,7 +55,7 @@ export function getApiBaseUrl(): string {
 
   // Automatic Fallbacks
   if (hostIp) {
-    return `http://${hostIp}:8000`;
+    return `http://${hostIp}:9000`;
   }
 
   return DEFAULT_LAN_URL;

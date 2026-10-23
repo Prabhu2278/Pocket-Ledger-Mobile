@@ -4,7 +4,7 @@
  * between the mobile app's API client contracts and the FastAPI backend.
  */
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:9000';
 
 async function runVerification() {
   console.log(`=======================================================`);

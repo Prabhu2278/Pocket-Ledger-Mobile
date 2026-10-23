@@ -27,6 +27,7 @@ import {
 } from '../../src/constants/categories';
 import { TransactionType } from '../../src/types';
 import { Spacing, Radii, Typography } from '../../src/theme';
+import { DatePickerModal } from '../../src/components/DatePickerModal';
 
 export default function TransactionModal() {
   const router = useRouter();
@@ -67,6 +68,7 @@ export default function TransactionModal() {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Available categories based on selected transaction type
   const availableCategories =
@@ -403,14 +405,24 @@ export default function TransactionModal() {
           leftIcon={<Ionicons name="document-text-outline" size={18} color={theme.textMuted} />}
         />
 
-        {/* 6. Date Input */}
-        <Input
-          label="Date (YYYY-MM-DD)"
-          placeholder="YYYY-MM-DD"
-          value={date}
-          onChangeText={setDate}
-          leftIcon={<Ionicons name="calendar-outline" size={18} color={theme.textMuted} />}
-        />
+        {/* 6. Date Input with Calendar Picker */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Input
+            label="Date (Tap calendar to select)"
+            placeholder="YYYY-MM-DD"
+            value={date}
+            onChangeText={setDate}
+            leftIcon={<Ionicons name="calendar-outline" size={18} color={theme.primary} />}
+            rightIcon={
+              <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ padding: 4 }}>
+                <Ionicons name="calendar" size={20} color={theme.primary} />
+              </TouchableOpacity>
+            }
+          />
+        </TouchableOpacity>
 
         {/* Action Buttons */}
         <Button
@@ -430,6 +442,15 @@ export default function TransactionModal() {
             style={{ marginTop: Spacing.md }}
           />
         ) : null}
+
+        {/* Calendar Date Picker Modal */}
+        <DatePickerModal
+          isOpen={showDatePicker}
+          onClose={() => setShowDatePicker(false)}
+          title="Select Transaction Date"
+          selectedDate={date}
+          onSelectDate={(d) => setDate(d || getTodayIso())}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

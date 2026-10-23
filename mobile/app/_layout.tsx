@@ -68,16 +68,7 @@ function RootNavigation() {
             headerTintColor: theme.text,
           }}
         />
-        <Stack.Screen
-          name="modal/budget"
-          options={{
-            presentation: 'modal',
-            headerShown: true,
-            title: 'Monthly Budget',
-            headerStyle: { backgroundColor: theme.surface },
-            headerTintColor: theme.text,
-          }}
-        />
+
         <Stack.Screen
           name="modal/csv"
           options={{

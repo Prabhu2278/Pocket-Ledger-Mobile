@@ -29,9 +29,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout handler
   const logout = useCallback(async () => {
-    await storage.clearAll();
-    setToken(null);
-    setUser(null);
+    try {
+      await storage.clearAll();
+    } catch (err) {
+      console.warn('[AuthContext] Error clearing storage during logout:', err);
+    } finally {
+      setToken(null);
+      setUser(null);
+    }
   }, []);
 
   // Hook up 401 interceptor

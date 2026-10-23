@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
 // Pocket Ledger Mobile - Bottom Tab Bar Navigation
+// Exactly Matching Web Sidebar Navigation (Dashboard, Transactions, Wallets, Settings)
 // ---------------------------------------------------------------------------
 
 import React from 'react';
@@ -31,6 +32,7 @@ export default function TabLayout() {
         },
       }}
     >
+      {/* 1. Dashboard */}
       <Tabs.Screen
         name="index"
         options={{
@@ -41,16 +43,18 @@ export default function TabLayout() {
         }}
       />
 
+      {/* 2. Transactions */}
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Ledger',
+          title: 'Transactions',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'receipt' : 'receipt-outline'} size={22} color={color as string} />
           ),
         }}
       />
 
+      {/* 3. Wallets */}
       <Tabs.Screen
         name="wallets"
         options={{
@@ -61,16 +65,7 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="analytics"
-        options={{
-          title: 'Insights',
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'bar-chart' : 'bar-chart-outline'} size={22} color={color as string} />
-          ),
-        }}
-      />
-
+      {/* 4. Settings */}
       <Tabs.Screen
         name="settings"
         options={{

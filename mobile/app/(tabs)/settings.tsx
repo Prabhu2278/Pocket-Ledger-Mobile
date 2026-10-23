@@ -1,16 +1,19 @@
 // ---------------------------------------------------------------------------
-// Pocket Ledger Mobile - Settings & Preferences Screen
+// Pocket Ledger Mobile - Settings Screen
+// Faithfully matching frontend/src/pages/Settings.jsx
 // ---------------------------------------------------------------------------
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Switch,
+  TextInput,
   StyleSheet,
   Alert,
+  Modal,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,19 +22,365 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/Header';
-import { POPULAR_CURRENCIES } from '../../src/utils/formatCurrency';
+import { AddCurrencyModal } from '../../src/components/AddCurrencyModal';
+import {
+  DEFAULT_CURRENCIES,
+  POPULAR_CURRENCIES,
+  getCustomCurrencies,
+  saveCustomCurrency,
+  removeCustomCurrency,
+  CurrencyConfig,
+} from '../../src/utils/formatCurrency';
 import { api } from '../../src/services/api';
 import { Spacing, Radii, Typography } from '../../src/theme';
 
+const DARK_THEMES = [
+  {
+    id: 'dark',
+    name: 'Midnight Dark',
+    category: 'Fintech Slate',
+    description: 'Deep navy background with high-contrast text and glowing indigo accents.',
+    swatches: ['#818cf8', '#131926', '#34d399', '#f87171'],
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Wealth',
+    category: 'Forest Jade',
+    description: 'Deep forest obsidian theme with glowing mint emerald and jade accents.',
+    swatches: ['#10b981', '#0b241c', '#34d399', '#f87171'],
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean Sapphire',
+    category: 'Marine Cyan',
+    description: 'Deep oceanic blues with electric cyan highlights and high visual clarity.',
+    swatches: ['#0ea5e9', '#0b1e36', '#10b981', '#f43f5e'],
+  },
+  {
+    id: 'violet',
+    name: 'Royal Violet',
+    category: 'Cosmic Nebula',
+    description: 'Rich royal purple with vivid neon violet accents and deep nebula tones.',
+    swatches: ['#a855f7', '#18112d', '#10b981', '#f43f5e'],
+  },
+  {
+    id: 'sunset',
+    name: 'Sunset Amber',
+    category: 'Golden Bronze',
+    description: 'Warm twilight obsidian with vibrant amber and gold financial highlights.',
+    swatches: ['#f59e0b', '#20150d', '#10b981', '#f43f5e'],
+  },
+];
+
+const LIGHT_THEMES = [
+  {
+    id: 'light',
+    name: 'Crisp Daylight',
+    category: 'Clean Daylight',
+    description: 'Clean white cards with soft grayish-blue background and classic indigo tones.',
+    swatches: ['#4f46e5', '#ffffff', '#15803d', '#b91c1c'],
+  },
+  {
+    id: 'light-emerald',
+    name: 'Mint Meadow',
+    category: 'Spring Sage',
+    description: 'Fresh spring mint with soft jade borders and clean white surfaces.',
+    swatches: ['#059669', '#ffffff', '#10b981', '#dc2626'],
+  },
+  {
+    id: 'light-ocean',
+    name: 'Glacier Azure',
+    category: 'Breeze Sky',
+    description: 'Cool sky blue with arctic azure accents and high-contrast readability.',
+    swatches: ['#0284c7', '#ffffff', '#059669', '#e11d48'],
+  },
+  {
+    id: 'light-violet',
+    name: 'Lavender Whisper',
+    category: 'Royal Lilac',
+    description: 'Gentle lavender background with rich royal purple accents and elegant cards.',
+    swatches: ['#7c3aed', '#ffffff', '#059669', '#e11d48'],
+  },
+  {
+    id: 'light-sunset',
+    name: 'Champagne Sand',
+    category: 'Warm Honey',
+    description: 'Warm ivory background with golden amber and warm bronze accents.',
+    swatches: ['#d97706', '#ffffff', '#059669', '#dc2626'],
+  },
+];
+
+const PRESET_COLORS = [
+  '#b42c45',
+  '#2563eb',
+  '#15803d',
+  '#b45309',
+  '#0d7a6f',
+  '#9333ea',
+  '#ec4899',
+  '#0284c7',
+  '#6366f1',
+  '#64748b',
+];
+
+type SettingsTab = 'profile' | 'appearance' | 'currency' | 'categories' | 'security';
+
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, logout } = useAuth();
-  const { isDark, toggleTheme, theme } = useTheme();
-  const { currency, updateCurrency, categories } = useApp();
+  const { user, logout, updateProfile } = useAuth();
+  const { isDark, toggleTheme, setThemeMode, theme, themeMode } = useTheme();
+  const { currency, updateCurrency, categories, refreshCategories } = useApp();
 
-  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
+  // Profile tab state
+  const [fullName, setFullName] = useState(user?.full_name || '');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  // Appearance tab state
+  const [themeFilter, setThemeFilter] = useState<'all' | 'dark' | 'light'>('all');
+
+  // Currency tab state
+  const [customCurrencies, setCustomCurrencies] = useState<CurrencyConfig[]>(() => getCustomCurrencies());
+  const [showAddCurrencyModal, setShowAddCurrencyModal] = useState(false);
+  const [currencySaving, setCurrencySaving] = useState(false);
+
+  // Security tab state
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwError, setPwError] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+
+  // Categories tab state
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'expense' | 'income'>('all');
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatType, setNewCatType] = useState<'expense' | 'income'>('expense');
+  const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[0]);
+  const [catError, setCatError] = useState('');
+  const [catSaving, setCatSaving] = useState(false);
+
+  // Displayed currencies list
+  const displayedCurrencies = useMemo(() => {
+    const list: CurrencyConfig[] = [...DEFAULT_CURRENCIES];
+    const defaultCodes = new Set(DEFAULT_CURRENCIES.map((c: CurrencyConfig) => c.code));
+
+    customCurrencies.forEach((curr) => {
+      if (!defaultCodes.has(curr.code)) {
+        list.push(curr);
+        defaultCodes.add(curr.code);
+      }
+    });
+
+    if (currency && !defaultCodes.has(currency)) {
+      const match = POPULAR_CURRENCIES.find((c) => c.code === currency);
+      if (match) {
+        list.push(match);
+      } else {
+        list.push({
+          code: currency,
+          name: currency,
+          symbol: currency,
+          locale: 'en-US',
+          label: `${currency} (${currency})`,
+        });
+      }
+    }
+    return list;
+  }, [customCurrencies, currency]);
+
+  // Handle Save Profile
+  const handleSaveProfile = async () => {
+    if (!fullName.trim()) {
+      Alert.alert('Validation Error', 'Full name cannot be empty');
+      return;
+    }
+    setProfileSaving(true);
+    try {
+      await updateProfile({ full_name: fullName.trim() });
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to update profile');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  // Handle Currency Change
+  const handleSelectCurrency = (targetCode: string) => {
+    if (targetCode === currency) return;
+
+    Alert.alert(
+      'Change Currency?',
+      `Are you sure you want to change your preferred currency to ${targetCode}?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            setCurrencySaving(true);
+            try {
+              await updateCurrency(targetCode);
+              Alert.alert('Success', `Currency changed to ${targetCode}`);
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to update currency');
+            } finally {
+              setCurrencySaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle Remove Custom Currency
+  const handleRemoveCustom = (codeToRemove: string) => {
+    Alert.alert(
+      'Delete Currency?',
+      `Are you sure you want to delete ${codeToRemove} from your currency options?`,
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            const updated = removeCustomCurrency(codeToRemove);
+            setCustomCurrencies(updated);
+            if (currency === codeToRemove) {
+              await updateCurrency('INR');
+            }
+            Alert.alert('Success', `Removed ${codeToRemove} from currency options`);
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle Adding Currency
+  const handleAddCurrency = (newCurr: CurrencyConfig) => {
+    const code = (newCurr.code || '').toUpperCase();
+    if (!code) return;
+    const isDefault = DEFAULT_CURRENCIES.some((d: CurrencyConfig) => d.code === code);
+    if (!isDefault) {
+      saveCustomCurrency(newCurr);
+      setCustomCurrencies(getCustomCurrencies());
+    }
+    Alert.alert('Currency Added', `Added ${code} to currency options. Select it whenever you wish to switch.`);
+  };
+
+  // Handle Change Password
+  const handleChangePassword = async () => {
+    setPwError('');
+    if (!currentPw) {
+      setPwError('Enter your current password.');
+      return;
+    }
+    if (newPw.length < 6) {
+      setPwError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPw !== confirmPw) {
+      setPwError('New passwords do not match.');
+      return;
+    }
+
+    Alert.alert(
+      'Update Password?',
+      'Are you sure you want to update your password? You will need to use your new password next time you sign in.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Update Password',
+          onPress: async () => {
+            setPwSaving(true);
+            try {
+              await api.auth.changePassword({
+                current_password: currentPw,
+                new_password: newPw,
+              });
+              setCurrentPw('');
+              setNewPw('');
+              setConfirmPw('');
+              Alert.alert('Success', 'Password changed successfully');
+            } catch (err: any) {
+              setPwError(err.message || 'Failed to change password');
+            } finally {
+              setPwSaving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle Create Category
+  const handleCreateCategory = async () => {
+    if (!newCatName.trim()) {
+      setCatError('Category name is required.');
+      return;
+    }
+    setCatSaving(true);
+    setCatError('');
+    try {
+      await api.categories.create({
+        name: newCatName.trim(),
+        type: newCatType,
+        color: newCatColor,
+      });
+      await refreshCategories();
+      setIsCategoryModalOpen(false);
+      setNewCatName('');
+      Alert.alert('Success', `Category '${newCatName.trim()}' added successfully.`);
+    } catch (err: any) {
+      setCatError(err.message || 'Failed to create category.');
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  // Handle Delete Category
+  const handleDeleteCategory = (catId: number, catName: string) => {
+    Alert.alert(
+      'Delete Category?',
+      `Are you sure you want to delete '${catName}'?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.categories.delete(catId);
+              await refreshCategories();
+              Alert.alert('Success', `Category '${catName}' deleted.`);
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to delete category');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Handle Sign Out
   const handleLogout = () => {
+    const performLogout = async () => {
+      try {
+        await logout();
+        router.replace('/login');
+      } catch (err: any) {
+        Alert.alert('Error', err?.message || 'Failed to sign out');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out of Pocket Ledger?')) {
+        performLogout();
+      }
+      return;
+    }
+
     Alert.alert(
       'Sign Out',
       'Are you sure you want to sign out of Pocket Ledger?',
@@ -40,295 +389,577 @@ export default function SettingsScreen() {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/login');
-          },
+          onPress: performLogout,
         },
       ]
     );
   };
 
+  const filteredCategories = categories.filter((c) => {
+    if (categoryFilter === 'all') return true;
+    return c.type === categoryFilter;
+  });
+
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <Header title="Settings" showMonthSwitcher={false} subtitle="Preferences, categories & account" />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* User Profile Card */}
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View style={styles.profileRow}>
-            <View style={[styles.profileAvatar, { backgroundColor: theme.primary }]}>
-              <Text style={styles.avatarInitial}>
-                {user?.full_name ? user.full_name.charAt(0).toUpperCase() : 'P'}
-              </Text>
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={[styles.profileName, { color: theme.text }]}>
-                {user?.full_name || 'Pocket Ledger User'}
-              </Text>
-              <Text style={[styles.profileEmail, { color: theme.textMuted }]}>
-                {user?.email || 'user@pocketledger.app'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 1. Appearance / Theme */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Appearance</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons
-                  name={isDark ? 'moon-outline' : 'sunny-outline'}
-                  size={18}
-                  color={theme.primary}
-                />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>Dark Theme</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]}>
-                  {isDark ? 'Midnight Fintech Dark active' : 'Clean Slate Light active'}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: theme.border, true: theme.primary }}
-              thumbColor="#ffffff"
-            />
-          </View>
-        </View>
-
-        {/* 2. Currency Preferences */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Currency Settings</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
+      {/* Top 5 Navigation Tabs matching web SETTINGS_TABS */}
+      <View style={[styles.tabsHeader, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
           <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => setShowCurrencyModal(!showCurrencyModal)}
-            style={styles.settingItem}
+            style={[styles.tabBtn, activeTab === 'profile' && { borderBottomColor: theme.primary, borderBottomWidth: 2.5 }]}
+            onPress={() => setActiveTab('profile')}
           >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.successSoft }]}>
-                <Ionicons name="cash-outline" size={18} color={theme.success} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>Display Currency</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]}>
-                  Active: {currency} (Synced with Web)
-                </Text>
-              </View>
-            </View>
-            <View style={styles.currencyPill}>
-              <Text style={[styles.currencyPillText, { color: theme.primary }]}>{currency}</Text>
-              <Ionicons
-                name={showCurrencyModal ? 'chevron-up' : 'chevron-down'}
-                size={16}
-                color={theme.primary}
-                style={{ marginLeft: 4 }}
-              />
-            </View>
+            <Ionicons name="person-outline" size={15} color={activeTab === 'profile' ? theme.primary : theme.textMuted} />
+            <Text style={[styles.tabLabel, { color: activeTab === 'profile' ? theme.primary : theme.textMuted }]}>Profile</Text>
           </TouchableOpacity>
 
-          {/* Currency Dropdown Options */}
-          {showCurrencyModal ? (
-            <View style={[styles.currencyOptionsList, { borderTopColor: theme.borderSubtle }]}>
-              {POPULAR_CURRENCIES.map((c) => (
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'appearance' && { borderBottomColor: theme.primary, borderBottomWidth: 2.5 }]}
+            onPress={() => setActiveTab('appearance')}
+          >
+            <Ionicons name="color-palette-outline" size={15} color={activeTab === 'appearance' ? theme.primary : theme.textMuted} />
+            <Text style={[styles.tabLabel, { color: activeTab === 'appearance' ? theme.primary : theme.textMuted }]}>Themes & Colors</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'currency' && { borderBottomColor: theme.primary, borderBottomWidth: 2.5 }]}
+            onPress={() => setActiveTab('currency')}
+          >
+            <Ionicons name="cash-outline" size={15} color={activeTab === 'currency' ? theme.primary : theme.textMuted} />
+            <Text style={[styles.tabLabel, { color: activeTab === 'currency' ? theme.primary : theme.textMuted }]}>Currency</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'categories' && { borderBottomColor: theme.primary, borderBottomWidth: 2.5 }]}
+            onPress={() => setActiveTab('categories')}
+          >
+            <Ionicons name="pricetag-outline" size={15} color={activeTab === 'categories' ? theme.primary : theme.textMuted} />
+            <Text style={[styles.tabLabel, { color: activeTab === 'categories' ? theme.primary : theme.textMuted }]}>Categories</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tabBtn, activeTab === 'security' && { borderBottomColor: theme.primary, borderBottomWidth: 2.5 }]}
+            onPress={() => setActiveTab('security')}
+          >
+            <Ionicons name="shield-checkmark-outline" size={15} color={activeTab === 'security' ? theme.primary : theme.textMuted} />
+            <Text style={[styles.tabLabel, { color: activeTab === 'security' ? theme.primary : theme.textMuted }]}>Security & Account</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* =====================================================================
+            TAB 1: Profile Settings
+            ===================================================================== */}
+        {activeTab === 'profile' && (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.cardHeading, { color: theme.text }]}>Profile settings</Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+              Manage your display name and view your connected account details.
+            </Text>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Full name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Your display name"
+                placeholderTextColor={theme.textMuted}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Email address</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.surfaceMuted, borderColor: theme.border, color: theme.textMuted, opacity: 0.7 }]}
+                value={user?.email || 'Logged in user'}
+                editable={false}
+              />
+            </View>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleSaveProfile}
+              disabled={profileSaving}
+              style={[styles.primaryBtn, { backgroundColor: theme.primary }]}
+            >
+              <Text style={styles.primaryBtnText}>{profileSaving ? 'Saving...' : 'Save profile'}</Text>
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.border, marginVertical: 18 }]} />
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleLogout}
+              style={[styles.logoutBtn, { borderColor: theme.danger }]}
+            >
+              <Ionicons name="log-out-outline" size={16} color={theme.danger} />
+              <Text style={[styles.logoutBtnText, { color: theme.danger }]}>Sign Out of Pocket Ledger</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* =====================================================================
+            TAB 2: Themes & Colors
+            ===================================================================== */}
+        {activeTab === 'appearance' && (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.cardHeaderFlex}>
+              <Text style={[styles.cardHeading, { color: theme.text }]}>Theme preferences</Text>
+              <View style={[styles.pillBadge, { backgroundColor: theme.primarySoft }]}>
+                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>10 curated palettes</Text>
+              </View>
+            </View>
+
+            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+              Personalize your workspace with 10 curated financial color palettes. Each theme automatically customizes accents, cards, and data visuals.
+            </Text>
+
+            {/* Filter pills */}
+            <View style={styles.pillsRow}>
+              {(['all', 'dark', 'light'] as const).map((mode) => (
                 <TouchableOpacity
-                  key={c.code}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    updateCurrency(c.code);
-                    setShowCurrencyModal(false);
-                  }}
+                  key={mode}
+                  onPress={() => setThemeFilter(mode)}
                   style={[
-                    styles.currencyOptionItem,
-                    {
-                      backgroundColor: c.code === currency ? theme.primarySoft : 'transparent',
-                    },
+                    styles.filterPill,
+                    themeFilter === mode && { backgroundColor: theme.primary },
                   ]}
                 >
                   <Text
                     style={[
-                      styles.currencyOptionText,
-                      {
-                        color: c.code === currency ? theme.primary : theme.text,
-                        fontWeight: c.code === currency ? Typography.weights.bold : Typography.weights.regular,
-                      },
+                      styles.filterPillText,
+                      { color: themeFilter === mode ? '#ffffff' : theme.textSecondary },
                     ]}
                   >
-                    {c.label}
+                    {mode === 'all' ? 'All Palettes (10)' : mode === 'dark' ? 'Dark Themes (5)' : 'Light Themes (5)'}
                   </Text>
-                  {c.code === currency ? (
-                    <Ionicons name="checkmark" size={18} color={theme.primary} />
-                  ) : null}
                 </TouchableOpacity>
               ))}
             </View>
-          ) : null}
-        </View>
 
-        {/* 3. Category Management */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Categories</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/modal/category')}
-            style={styles.settingItem}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.infoSoft }]}>
-                <Ionicons name="pricetags-outline" size={18} color={theme.info} />
+            {/* Dark Themes */}
+            {(themeFilter === 'all' || themeFilter === 'dark') && (
+              <View style={styles.themeGroup}>
+                <Text style={[styles.themeGroupTitle, { color: theme.text }]}>Dark Themes (5 Options)</Text>
+                {DARK_THEMES.map((t) => {
+                  const isSelected = isDark && (themeMode === t.id || (themeMode === 'dark' && t.id === 'dark'));
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setThemeMode('dark');
+                        Alert.alert('Theme Updated', `Theme set to ${t.name}`);
+                      }}
+                      style={[
+                        styles.themeCard,
+                        {
+                          backgroundColor: isDark ? '#161e2e' : '#f8fafc',
+                          borderColor: isSelected ? theme.primary : theme.border,
+                          borderLeftColor: t.swatches[0],
+                          borderLeftWidth: 4,
+                        },
+                      ]}
+                    >
+                      <View style={styles.themeCardHeader}>
+                        <View style={styles.themeTitleBox}>
+                          <Text style={[styles.themeCardName, { color: theme.text }]}>{t.name}</Text>
+                          <Text style={[styles.themeCardCategory, { color: theme.textMuted }]}>{t.category}</Text>
+                        </View>
+                        {isSelected && (
+                          <View style={[styles.activeTag, { backgroundColor: theme.primarySoft }]}>
+                            <Text style={[styles.activeTagText, { color: theme.primary }]}>Active</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.swatchesRow}>
+                        {t.swatches.map((color, idx) => (
+                          <View key={idx} style={[styles.swatch, { backgroundColor: color }]} />
+                        ))}
+                      </View>
+                      <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{t.description}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>Manage Categories</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]}>
-                  {categories.length} custom and system categories
-                </Text>
+            )}
+
+            {/* Light Themes */}
+            {(themeFilter === 'all' || themeFilter === 'light') && (
+              <View style={styles.themeGroup}>
+                <Text style={[styles.themeGroupTitle, { color: theme.text }]}>Light Themes (5 Options)</Text>
+                {LIGHT_THEMES.map((t) => {
+                  const isSelected = !isDark && (themeMode === t.id || (themeMode === 'light' && t.id === 'light'));
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        setThemeMode('light');
+                        Alert.alert('Theme Updated', `Theme set to ${t.name}`);
+                      }}
+                      style={[
+                        styles.themeCard,
+                        {
+                          backgroundColor: isDark ? '#161e2e' : '#f8fafc',
+                          borderColor: isSelected ? theme.primary : theme.border,
+                          borderLeftColor: t.swatches[0],
+                          borderLeftWidth: 4,
+                        },
+                      ]}
+                    >
+                      <View style={styles.themeCardHeader}>
+                        <View style={styles.themeTitleBox}>
+                          <Text style={[styles.themeCardName, { color: theme.text }]}>{t.name}</Text>
+                          <Text style={[styles.themeCardCategory, { color: theme.textMuted }]}>{t.category}</Text>
+                        </View>
+                        {isSelected && (
+                          <View style={[styles.activeTag, { backgroundColor: theme.primarySoft }]}>
+                            <Text style={[styles.activeTagText, { color: theme.primary }]}>Active</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={styles.swatchesRow}>
+                        {t.swatches.map((color, idx) => (
+                          <View key={idx} style={[styles.swatch, { backgroundColor: color }]} />
+                        ))}
+                      </View>
+                      <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{t.description}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* =====================================================================
+            TAB 3: Currency Formatting
+            ===================================================================== */}
+        {activeTab === 'currency' && (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.cardHeaderFlex}>
+              <Text style={[styles.cardHeading, { color: theme.text }]}>Currency formatting</Text>
+              <View style={[styles.pillBadge, { backgroundColor: theme.primarySoft }]}>
+                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>Default: INR</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
 
-        {/* 4. Budget & Financial Goals */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Budget Target</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/modal/budget')}
-            style={styles.settingItem}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.warningSoft }]}>
-                <Ionicons name="trending-up-outline" size={18} color={theme.warning} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>Monthly Budget Limit</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]}>
-                  Configure monthly spending target
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+              Select your preferred currency for display across transactions, cards, and reports.
+            </Text>
 
-        {/* 5. Statement CSV Tools */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Data & Statements</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => router.push('/modal/csv')}
-            style={styles.settingItem}
-          >
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="cloud-upload-outline" size={18} color={theme.primary} />
-              </View>
-              <View>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>Import Bank Statement</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]}>
-                  Upload CSV bank statement to mobile and web
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
-          </TouchableOpacity>
-        </View>
+            <View style={styles.currencyChipsGrid}>
+              {displayedCurrencies.map((c) => {
+                const isSelected = currency === c.code;
+                const isCustom = !DEFAULT_CURRENCIES.some((d: CurrencyConfig) => d.code === c.code);
 
-        {/* 6. Backend Connectivity & Info */}
-        <Text style={[styles.sectionHeading, { color: theme.textSecondary }]}>Backend Status</Text>
-        <View
-          style={[
-            styles.sectionCard,
-            {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
-            },
-          ]}
-        >
-          <View style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <View style={[styles.settingIconBox, { backgroundColor: theme.successSoft }]}>
-                <Ionicons name="server-outline" size={18} color={theme.success} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.settingTitle, { color: theme.text }]}>FastAPI Backend</Text>
-                <Text style={[styles.settingDescription, { color: theme.textMuted }]} numberOfLines={1}>
-                  {api.getBaseUrl()}
+                return (
+                  <TouchableOpacity
+                    key={c.code}
+                    activeOpacity={0.8}
+                    onPress={() => handleSelectCurrency(c.code)}
+                    style={[
+                      styles.currencyChip,
+                      {
+                        backgroundColor: isSelected ? theme.primarySoft : isDark ? '#161e2e' : '#f8fafc',
+                        borderColor: isSelected ? theme.primary : theme.border,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.currencyChipText,
+                        { color: isSelected ? theme.primary : theme.text },
+                      ]}
+                    >
+                      {c.symbol} {c.code}
+                    </Text>
+
+                    {isCustom && (
+                      <TouchableOpacity
+                        onPress={() => handleRemoveCustom(c.code)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        style={styles.removeCurrencyBtn}
+                      >
+                        <Text style={[styles.removeCurrencyText, { color: theme.danger }]}>×</Text>
+                      </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* + Add Currency Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setShowAddCurrencyModal(true)}
+                style={[
+                  styles.currencyChip,
+                  {
+                    borderStyle: 'dashed',
+                    borderColor: theme.primary,
+                    backgroundColor: theme.primarySoft,
+                  },
+                ]}
+              >
+                <Ionicons name="add" size={14} color={theme.primary} />
+                <Text style={[styles.currencyChipText, { color: theme.primary, fontWeight: '700' }]}>
+                  Add Currency
                 </Text>
-              </View>
-            </View>
-            <View style={[styles.onlineBadge, { backgroundColor: theme.successSoft }]}>
-              <Text style={[styles.onlineBadgeText, { color: theme.success }]}>Connected</Text>
+              </TouchableOpacity>
             </View>
           </View>
-        </View>
+        )}
 
-        {/* Sign Out Button */}
-        <TouchableOpacity
-          activeOpacity={0.75}
-          onPress={handleLogout}
-          style={[styles.logoutBtn, { backgroundColor: theme.dangerSoft, borderColor: theme.danger }]}
-        >
-          <Ionicons name="log-out-outline" size={18} color={theme.danger} style={{ marginRight: 8 }} />
-          <Text style={[styles.logoutText, { color: theme.danger }]}>Sign Out</Text>
-        </TouchableOpacity>
+        {/* =====================================================================
+            TAB 4: Categories
+            ===================================================================== */}
+        {activeTab === 'categories' && (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.cardHeaderFlex}>
+              <Text style={[styles.cardHeading, { color: theme.text }]}>Categories</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setNewCatName('');
+                  setCatError('');
+                  setIsCategoryModalOpen(true);
+                }}
+                style={[styles.smallAddBtn, { backgroundColor: theme.primary }]}
+              >
+                <Ionicons name="add" size={14} color="#ffffff" />
+                <Text style={styles.smallAddBtnText}>Add Category</Text>
+              </TouchableOpacity>
+            </View>
 
-        <Text style={[styles.versionText, { color: theme.textMuted }]}>
-          Pocket Ledger Mobile v1.0.0 • Connected to FastAPI & PostgreSQL/SQLite
-        </Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+              Customize expense and income categories used to categorize your transactions.
+            </Text>
+
+            {/* Filter pills */}
+            <View style={styles.pillsRow}>
+              {(['all', 'expense', 'income'] as const).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setCategoryFilter(f)}
+                  style={[
+                    styles.filterPill,
+                    categoryFilter === f && { backgroundColor: theme.primary },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillText,
+                      { color: categoryFilter === f ? '#ffffff' : theme.textSecondary },
+                    ]}
+                  >
+                    {f === 'all' ? 'All' : f === 'expense' ? 'Expenses' : 'Income'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Category list */}
+            <View style={styles.categoryList}>
+              {filteredCategories.map((cat) => (
+                <View
+                  key={cat.id}
+                  style={[styles.categoryItem, { borderBottomColor: theme.border }]}
+                >
+                  <View style={styles.categoryItemLeft}>
+                    <View style={[styles.catColorDot, { backgroundColor: cat.color || '#2563eb' }]} />
+                    <Text style={[styles.catName, { color: theme.text }]}>{cat.name}</Text>
+                    <View style={[styles.catTypeTag, { backgroundColor: theme.surfaceMuted }]}>
+                      <Text style={[styles.catTypeTagText, { color: theme.textMuted }]}>{cat.type}</Text>
+                    </View>
+                  </View>
+
+                  {!cat.is_default && (
+                    <TouchableOpacity
+                      onPress={() => handleDeleteCategory(cat.id, cat.name)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={16} color={theme.danger} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* =====================================================================
+            TAB 5: Security & Account
+            ===================================================================== */}
+        {activeTab === 'security' && (
+          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.cardHeading, { color: theme.text }]}>Account & security</Text>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.formSubheading, { color: theme.text }]}>Change password</Text>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Current password</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                value={currentPw}
+                onChangeText={setCurrentPw}
+                placeholder="Enter current password"
+                placeholderTextColor={theme.textMuted}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>New password</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                value={newPw}
+                onChangeText={setNewPw}
+                placeholder="At least 6 characters"
+                placeholderTextColor={theme.textMuted}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Confirm new password</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                value={confirmPw}
+                onChangeText={setConfirmPw}
+                placeholder="Re-enter new password"
+                placeholderTextColor={theme.textMuted}
+                secureTextEntry
+              />
+            </View>
+
+            {pwError ? <Text style={styles.errorText}>{pwError}</Text> : null}
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleChangePassword}
+              disabled={pwSaving}
+              style={[styles.secondaryBtn, { borderColor: theme.border, backgroundColor: theme.surfaceMuted }]}
+            >
+              <Text style={[styles.secondaryBtnText, { color: theme.text }]}>
+                {pwSaving ? 'Updating password...' : 'Update password'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+            <View style={styles.sessionSection}>
+              <Text style={[styles.formSubheading, { color: theme.text }]}>Session</Text>
+              <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+                Sign out of your active account session. You will be redirected to the sign-in screen.
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleLogout}
+                style={[styles.logoutBtn, { borderColor: theme.danger }]}
+              >
+                <Ionicons name="log-out-outline" size={16} color={theme.danger} />
+                <Text style={[styles.logoutBtnText, { color: theme.danger }]}>Log out of Pocket Ledger</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
+
+      {/* Add Currency Modal */}
+      <AddCurrencyModal
+        isOpen={showAddCurrencyModal}
+        onClose={() => setShowAddCurrencyModal(false)}
+        onSelectCurrency={handleAddCurrency}
+        existingCodes={displayedCurrencies.map((c) => c.code)}
+        activeCurrency={currency}
+      />
+
+      {/* Add Category Modal */}
+      <Modal
+        visible={isCategoryModalOpen}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setIsCategoryModalOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.text }]}>New Category</Text>
+              <TouchableOpacity onPress={() => setIsCategoryModalOpen(false)}>
+                <Ionicons name="close" size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Category Name</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: theme.background, borderColor: theme.border, color: theme.text }]}
+                value={newCatName}
+                onChangeText={setNewCatName}
+                placeholder="e.g., Subscriptions, Pet"
+                placeholderTextColor={theme.textMuted}
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Type</Text>
+              <View style={styles.typeSelectorRow}>
+                <TouchableOpacity
+                  onPress={() => setNewCatType('expense')}
+                  style={[
+                    styles.typeSelectorBtn,
+                    newCatType === 'expense' && { backgroundColor: theme.danger },
+                  ]}
+                >
+                  <Text style={{ color: newCatType === 'expense' ? '#ffffff' : theme.textSecondary, fontWeight: '700' }}>Expense</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setNewCatType('income')}
+                  style={[
+                    styles.typeSelectorBtn,
+                    newCatType === 'income' && { backgroundColor: theme.success },
+                  ]}
+                >
+                  <Text style={{ color: newCatType === 'income' ? '#ffffff' : theme.textSecondary, fontWeight: '700' }}>Income</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Color</Text>
+              <View style={styles.colorSwatchesRow}>
+                {PRESET_COLORS.map((col) => (
+                  <TouchableOpacity
+                    key={col}
+                    onPress={() => setNewCatColor(col)}
+                    style={[
+                      styles.colorDotBtn,
+                      { backgroundColor: col },
+                      newCatColor === col && { borderWidth: 2.5, borderColor: '#ffffff' },
+                    ]}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {catError ? <Text style={styles.errorText}>{catError}</Text> : null}
+
+            <TouchableOpacity
+              onPress={handleCreateCategory}
+              disabled={catSaving}
+              style={[styles.primaryBtn, { backgroundColor: theme.primary, marginTop: Spacing.md }]}
+            >
+              <Text style={styles.primaryBtnText}>{catSaving ? 'Creating...' : 'Create Category'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -337,131 +968,307 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
-  scrollContent: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
+  tabsHeader: {
+    borderBottomWidth: 1,
   },
-  sectionHeading: {
-    fontSize: Typography.sizes.xs,
-    fontWeight: Typography.weights.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: Spacing.xs,
-    marginTop: Spacing.md,
-    marginLeft: 4,
+  tabsScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.md,
   },
-  sectionCard: {
-    borderRadius: Radii.lg,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  profileRow: {
+  tabBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
-  profileAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  avatarInitial: {
-    color: '#ffffff',
-    fontSize: Typography.sizes.lg,
-    fontWeight: Typography.weights.bold,
-  },
-  profileInfo: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: Typography.sizes.base,
-    fontWeight: Typography.weights.bold,
-  },
-  profileEmail: {
+  tabLabel: {
     fontSize: Typography.sizes.xs,
-    marginTop: 2,
+    fontWeight: Typography.weights.semibold,
   },
-  settingItem: {
+  scrollContent: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xxxl,
+  },
+  card: {
+    padding: Spacing.md,
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+  },
+  cardHeaderFlex: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: Spacing.md,
+    marginBottom: 4,
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  cardHeading: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.bold,
   },
-  settingIconBox: {
-    width: 34,
-    height: 34,
+  cardSubtitle: {
+    fontSize: Typography.sizes.xs,
+    marginBottom: Spacing.md,
+    lineHeight: 18,
+  },
+  pillBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: Radii.pill,
+  },
+  pillBadgeText: {
+    fontSize: 10,
+    fontWeight: Typography.weights.bold,
+  },
+  formGroup: {
+    marginBottom: Spacing.md,
+  },
+  formSubheading: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.bold,
+    marginBottom: Spacing.sm,
+  },
+  inputLabel: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.semibold,
+    marginBottom: 6,
+  },
+  input: {
+    height: 42,
+    borderWidth: 1,
+    borderRadius: Radii.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: Typography.sizes.sm,
+  },
+  primaryBtn: {
+    height: 42,
     borderRadius: Radii.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.md,
   },
-  settingTitle: {
+  primaryBtnText: {
+    color: '#ffffff',
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.bold,
+  },
+  secondaryBtn: {
+    height: 42,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryBtnText: {
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.semibold,
   },
-  settingDescription: {
+  errorText: {
+    color: '#ef4444',
     fontSize: Typography.sizes.xs,
-    marginTop: 2,
+    marginBottom: Spacing.sm,
   },
-  currencyPill: {
+  pillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
+  filterPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radii.pill,
+  },
+  filterPillText: {
+    fontSize: 11,
+    fontWeight: Typography.weights.semibold,
+  },
+  themeGroup: {
+    marginBottom: Spacing.lg,
+  },
+  themeGroupTitle: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.bold,
+    marginBottom: Spacing.sm,
+  },
+  themeCard: {
+    padding: 12,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  themeCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  themeTitleBox: {
+    flex: 1,
+  },
+  themeCardName: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.bold,
+  },
+  themeCardCategory: {
+    fontSize: 10,
+  },
+  activeTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: Radii.pill,
+  },
+  activeTagText: {
+    fontSize: 10,
+    fontWeight: Typography.weights.bold,
+  },
+  swatchesRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginVertical: 6,
+  },
+  swatch: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+  },
+  themeDesc: {
+    fontSize: 11,
+    lineHeight: 16,
+  },
+  currencyChipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: Radii.pill,
+    borderWidth: 1,
+  },
+  currencyChipText: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.medium,
+  },
+  removeCurrencyBtn: {
+    marginLeft: 2,
+  },
+  removeCurrencyText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  categoryList: {
+    marginTop: 4,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    borderBottomWidth: 0.5,
+  },
+  categoryItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  catColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: Radii.pill,
+  },
+  catName: {
+    fontSize: Typography.sizes.sm,
+    fontWeight: Typography.weights.medium,
+  },
+  catTypeTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: Radii.sm,
+  },
+  catTypeTagText: {
+    fontSize: 9,
+    textTransform: 'capitalize',
+  },
+  smallAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radii.pill,
   },
-  currencyPillText: {
-    fontSize: Typography.sizes.xs,
+  smallAddBtnText: {
+    color: '#ffffff',
+    fontSize: 10,
     fontWeight: Typography.weights.bold,
   },
-  currencyOptionsList: {
-    borderTopWidth: 1,
-    paddingVertical: 4,
+  divider: {
+    height: 1,
+    marginVertical: Spacing.lg,
   },
-  currencyOptionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-  },
-  currencyOptionText: {
-    fontSize: Typography.sizes.sm,
-  },
-  onlineBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radii.pill,
-  },
-  onlineBadgeText: {
-    fontSize: 11,
-    fontWeight: Typography.weights.bold,
+  sessionSection: {
+    marginTop: Spacing.xs,
   },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radii.md,
+    gap: 8,
+    height: 42,
     borderWidth: 1,
-    paddingVertical: 14,
-    marginTop: Spacing.xxl,
+    borderRadius: Radii.md,
+    marginTop: Spacing.sm,
   },
-  logoutText: {
+  logoutBtnText: {
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.bold,
   },
-  versionText: {
-    textAlign: 'center',
-    fontSize: Typography.sizes.xs,
-    marginTop: Spacing.lg,
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalBox: {
+    borderRadius: Radii.lg,
+    borderWidth: 1,
+    padding: Spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: Spacing.md,
+  },
+  modalTitle: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.bold,
+  },
+  typeSelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  typeSelectorBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorSwatchesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  colorDotBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.pill,
   },
 });
