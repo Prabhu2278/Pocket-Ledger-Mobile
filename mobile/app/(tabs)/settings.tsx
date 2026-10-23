@@ -503,139 +503,109 @@ export default function SettingsScreen() {
         )}
 
         {/* =====================================================================
-            TAB 2: Themes & Colors
+            TAB 2: Themes (Dark & Light Theme Only)
             ===================================================================== */}
         {activeTab === 'appearance' && (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.cardHeaderFlex}>
-              <Text style={[styles.cardHeading, { color: theme.text }]}>Theme preferences</Text>
+              <Text style={[styles.cardHeading, { color: theme.text }]}>Appearance</Text>
               <View style={[styles.pillBadge, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>10 curated palettes</Text>
+                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>2 Themes</Text>
               </View>
             </View>
 
             <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-              Personalize your workspace with 10 curated financial color palettes. Each theme automatically customizes accents, cards, and data visuals.
+              Choose your interface theme. Pocket Ledger supports tailored Dark and Light modes.
             </Text>
 
-            {/* Filter pills */}
-            <View style={styles.pillsRow}>
-              {(['all', 'dark', 'light'] as const).map((mode) => (
-                <TouchableOpacity
-                  key={mode}
-                  onPress={() => setThemeFilter(mode)}
-                  style={[
-                    styles.filterPill,
-                    themeFilter === mode && { backgroundColor: theme.primary },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.filterPillText,
-                      { color: themeFilter === mode ? '#ffffff' : theme.textSecondary },
-                    ]}
-                  >
-                    {mode === 'all' ? 'All Palettes (10)' : mode === 'dark' ? 'Dark Themes (5)' : 'Light Themes (5)'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Dark Themes */}
-            {(themeFilter === 'all' || themeFilter === 'dark') && (
-              <View style={styles.themeGroup}>
-                <Text style={[styles.themeGroupTitle, { color: theme.text }]}>Dark Themes (5 Options)</Text>
-                {DARK_THEMES.map((t) => {
-                  const isSelected = isDark && (themeMode === t.id || (themeMode === 'dark' && t.id === 'dark'));
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        setThemeMode('dark');
-                        Alert.alert('Theme Updated', `Theme set to ${t.name}`);
-                      }}
-                      style={[
-                        styles.themeCard,
-                        {
-                          backgroundColor: isDark ? '#161e2e' : '#f8fafc',
-                          borderColor: isSelected ? theme.primary : theme.border,
-                          borderLeftColor: t.swatches[0],
-                          borderLeftWidth: 4,
-                        },
-                      ]}
-                    >
-                      <View style={styles.themeCardHeader}>
-                        <View style={styles.themeTitleBox}>
-                          <Text style={[styles.themeCardName, { color: theme.text }]}>{t.name}</Text>
-                          <Text style={[styles.themeCardCategory, { color: theme.textMuted }]}>{t.category}</Text>
-                        </View>
-                        {isSelected && (
-                          <View style={[styles.activeTag, { backgroundColor: theme.primarySoft }]}>
-                            <Text style={[styles.activeTagText, { color: theme.primary }]}>Active</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.swatchesRow}>
-                        {t.swatches.map((color, idx) => (
-                          <View key={idx} style={[styles.swatch, { backgroundColor: color }]} />
-                        ))}
-                      </View>
-                      <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{t.description}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            {/* Dark Theme Option */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setThemeMode('dark');
+              }}
+              style={[
+                styles.themeCard,
+                {
+                  backgroundColor: '#0f172a',
+                  borderColor: isDark ? theme.primary : '#334155',
+                  borderWidth: isDark ? 2 : 1,
+                  borderLeftColor: '#3b82f6',
+                  borderLeftWidth: 5,
+                  marginBottom: Spacing.md,
+                },
+              ]}
+            >
+              <View style={styles.themeCardHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: Radii.pill, backgroundColor: 'rgba(59, 130, 246, 0.2)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="moon" size={18} color="#60a5fa" />
+                  </View>
+                  <View>
+                    <Text style={[styles.themeCardName, { color: '#ffffff' }]}>Dark Theme</Text>
+                    <Text style={[styles.themeCardCategory, { color: '#94a3b8' }]}>Deep Charcoal & Modern Blue</Text>
+                  </View>
+                </View>
+                {isDark ? (
+                  <View style={[styles.activeTag, { backgroundColor: theme.primary }]}>
+                    <Text style={[styles.activeTagText, { color: '#ffffff' }]}>Active</Text>
+                  </View>
+                ) : null}
               </View>
-            )}
 
-            {/* Light Themes */}
-            {(themeFilter === 'all' || themeFilter === 'light') && (
-              <View style={styles.themeGroup}>
-                <Text style={[styles.themeGroupTitle, { color: theme.text }]}>Light Themes (5 Options)</Text>
-                {LIGHT_THEMES.map((t) => {
-                  const isSelected = !isDark && (themeMode === t.id || (themeMode === 'light' && t.id === 'light'));
-                  return (
-                    <TouchableOpacity
-                      key={t.id}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        setThemeMode('light');
-                        Alert.alert('Theme Updated', `Theme set to ${t.name}`);
-                      }}
-                      style={[
-                        styles.themeCard,
-                        {
-                          backgroundColor: isDark ? '#161e2e' : '#f8fafc',
-                          borderColor: isSelected ? theme.primary : theme.border,
-                          borderLeftColor: t.swatches[0],
-                          borderLeftWidth: 4,
-                        },
-                      ]}
-                    >
-                      <View style={styles.themeCardHeader}>
-                        <View style={styles.themeTitleBox}>
-                          <Text style={[styles.themeCardName, { color: theme.text }]}>{t.name}</Text>
-                          <Text style={[styles.themeCardCategory, { color: theme.textMuted }]}>{t.category}</Text>
-                        </View>
-                        {isSelected && (
-                          <View style={[styles.activeTag, { backgroundColor: theme.primarySoft }]}>
-                            <Text style={[styles.activeTagText, { color: theme.primary }]}>Active</Text>
-                          </View>
-                        )}
-                      </View>
-
-                      <View style={styles.swatchesRow}>
-                        {t.swatches.map((color, idx) => (
-                          <View key={idx} style={[styles.swatch, { backgroundColor: color }]} />
-                        ))}
-                      </View>
-                      <Text style={[styles.themeDesc, { color: theme.textMuted }]}>{t.description}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+              <View style={styles.swatchesRow}>
+                {['#0f172a', '#1e293b', '#3b82f6', '#10b981', '#f43f5e'].map((color, idx) => (
+                  <View key={idx} style={[styles.swatch, { backgroundColor: color, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]} />
+                ))}
               </View>
-            )}
+              <Text style={[styles.themeDesc, { color: '#94a3b8' }]}>
+                Easy on the eyes in low light with deep backgrounds and vibrant contrast accents.
+              </Text>
+            </TouchableOpacity>
+
+            {/* Light Theme Option */}
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => {
+                setThemeMode('light');
+              }}
+              style={[
+                styles.themeCard,
+                {
+                  backgroundColor: '#ffffff',
+                  borderColor: !isDark ? theme.primary : '#e2e8f0',
+                  borderWidth: !isDark ? 2 : 1,
+                  borderLeftColor: '#2563eb',
+                  borderLeftWidth: 5,
+                },
+              ]}
+            >
+              <View style={styles.themeCardHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={{ width: 36, height: 36, borderRadius: Radii.pill, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name="sunny" size={20} color="#2563eb" />
+                  </View>
+                  <View>
+                    <Text style={[styles.themeCardName, { color: '#0f172a' }]}>Light Theme</Text>
+                    <Text style={[styles.themeCardCategory, { color: '#64748b' }]}>Clean Slate & Vibrant Indigo</Text>
+                  </View>
+                </View>
+                {!isDark ? (
+                  <View style={[styles.activeTag, { backgroundColor: theme.primary }]}>
+                    <Text style={[styles.activeTagText, { color: '#ffffff' }]}>Active</Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.swatchesRow}>
+                {['#f8fafc', '#ffffff', '#2563eb', '#10b981', '#ef4444'].map((color, idx) => (
+                  <View key={idx} style={[styles.swatch, { backgroundColor: color, borderColor: '#cbd5e1', borderWidth: 1 }]} />
+                ))}
+              </View>
+              <Text style={[styles.themeDesc, { color: '#64748b' }]}>
+                Crisp, modern, high-clarity daylight theme with rich card elevation and dark typography.
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 

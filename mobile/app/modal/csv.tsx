@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------
 // Pocket Ledger Mobile - Bank Statement CSV Import Modal
+// Resilient file reading compatible with Android content:// URIs and Scoped Storage.
 // ---------------------------------------------------------------------------
 
 import React, { useState } from 'react';
@@ -32,24 +33,96 @@ export default function CsvImportModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Splits a CSV line handling quoted values with commas
+  const splitCsvLine = (line: string): string[] => {
+    const values: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"' || char === "'") {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current.trim().replace(/^["']|["']$/g, ''));
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current.trim().replace(/^["']|["']$/g, ''));
+    return values;
+  };
+
+  // Normalizes dates (e.g. DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)
+  const normalizeDate = (raw: string): string => {
+    const clean = raw.trim().replace(/^["']|["']$/g, '');
+    if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+    if (clean.includes('/') || clean.includes('-')) {
+      const parts = clean.split(/[/-]/).map(Number);
+      if (parts.length === 3) {
+        if (parts[0] > 1000) {
+          // YYYY-MM-DD
+          return `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
+        } else if (parts[2] > 1000) {
+          // DD-MM-YYYY or MM-DD-YYYY
+          const day = parts[0] > 12 ? parts[0] : parts[1];
+          const month = parts[0] > 12 ? parts[1] : parts[0];
+          return `${parts[2]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+    }
+    return new Date().toISOString().split('T')[0];
+  };
+
   // Pick CSV Document
   const handlePickDocument = async () => {
     try {
+      setError(null);
       const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/csv', 'text/comma-separated-values', 'application/vnd.ms-excel', '*/*'],
+        type: [
+          'text/csv',
+          'text/comma-separated-values',
+          'text/plain',
+          'application/vnd.ms-excel',
+          '*/*',
+        ],
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         const file = result.assets[0];
         setFileName(file.name);
-        setError(null);
 
-        // Read file content
-        const csvFile = new FileSystem.File(file.uri);
-        const content = await csvFile.text();
+        // Read file content with multiple fallbacks for Android content:// and file:// URIs
+        let content = '';
 
-        parseCsvString(content);
+        try {
+          // Method 1: React Native's native fetch (handles content:// resolver on Android and blob on web)
+          const res = await fetch(file.uri);
+          content = await res.text();
+        } catch {
+          try {
+            // Method 2: FileSystem.readAsStringAsync
+            content = await FileSystem.readAsStringAsync(file.uri, {
+              encoding: 'utf8',
+            });
+          } catch {
+            // Method 3: File object text if available on web
+            if ((file as any).file && typeof (file as any).file.text === 'function') {
+              content = await (file as any).file.text();
+            } else {
+              throw new Error('Unable to read the chosen file. Please select a valid CSV file.');
+            }
+          }
+        }
+
+        if (!content || content.trim().length === 0) {
+          setError('The selected file is empty.');
+          return;
+        }
+
+        parseCsvString(content, file.name);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to open file.');
@@ -57,50 +130,119 @@ export default function CsvImportModal() {
   };
 
   // Parse CSV string into Transaction items
-  const parseCsvString = (text: string) => {
+  const parseCsvString = (text: string, currentFileName?: string) => {
     const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
     if (lines.length < 2) {
       setError('CSV file appears to be empty or missing headers.');
       return;
     }
 
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
     const dateIdx = headers.findIndex((h) => h.includes('date') || h.includes('time'));
-    const amountIdx = headers.findIndex((h) => h.includes('amount') || h.includes('amt') || h.includes('spent'));
-    const noteIdx = headers.findIndex((h) => h.includes('note') || h.includes('desc') || h.includes('title') || h.includes('narration'));
-    const catIdx = headers.findIndex((h) => h.includes('cat'));
+    const amountIdx = headers.findIndex(
+      (h) => h.includes('amount') || h.includes('amt') || h.includes('total') || h.includes('value')
+    );
+    const debitIdx = headers.findIndex((h) => h.includes('debit') || h === 'dr' || h.includes('withdrawal'));
+    const creditIdx = headers.findIndex((h) => h.includes('credit') || h === 'cr' || h.includes('deposit'));
+    const noteIdx = headers.findIndex(
+      (h) =>
+        h.includes('note') ||
+        h.includes('desc') ||
+        h.includes('title') ||
+        h.includes('narration') ||
+        h.includes('particulars')
+    );
+    const catIdx = headers.findIndex((h) => h.includes('cat') || h.includes('tag'));
     const typeIdx = headers.findIndex((h) => h.includes('type'));
+    const walletIdx = headers.findIndex((h) => h.includes('wallet') || h.includes('account'));
 
     const items: TransactionCreateInput[] = [];
     const defaultWalletId = wallets.length > 0 ? wallets[0].id : undefined;
+    const isIncomeFile = (currentFileName || '').toLowerCase().includes('income');
 
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map((c) => c.trim().replace(/^["']|["']$/g, ''));
+      const cols = splitCsvLine(lines[i]);
       if (cols.length <= 1) continue;
 
-      const amtVal = amountIdx !== -1 ? parseFloat(cols[amountIdx]) : parseFloat(cols[1]);
-      if (isNaN(amtVal) || amtVal <= 0) continue;
+      let amtVal = 0;
+      let typeVal: 'income' | 'expense' = isIncomeFile ? 'income' : 'expense';
 
-      const dateVal = dateIdx !== -1 && cols[dateIdx] ? cols[dateIdx] : new Date().toISOString().split('T')[0];
-      const noteVal = noteIdx !== -1 && cols[noteIdx] ? cols[noteIdx] : 'CSV Transaction';
-      const catVal = catIdx !== -1 && cols[catIdx] ? cols[catIdx] : 'Other';
-      const typeVal =
-        typeIdx !== -1 && cols[typeIdx]
-          ? (cols[typeIdx].toLowerCase().includes('inc') ? 'income' : 'expense')
-          : 'expense';
+      // 1. Check Debit/Credit columns
+      if (debitIdx !== -1 && cols[debitIdx] && !isNaN(parseFloat(cols[debitIdx].replace(/,/g, '')))) {
+        const d = parseFloat(cols[debitIdx].replace(/,/g, ''));
+        if (d > 0) {
+          amtVal = d;
+          typeVal = 'expense';
+        }
+      }
+      if (creditIdx !== -1 && cols[creditIdx] && !isNaN(parseFloat(cols[creditIdx].replace(/,/g, '')))) {
+        const c = parseFloat(cols[creditIdx].replace(/,/g, ''));
+        if (c > 0) {
+          amtVal = c;
+          typeVal = 'income';
+        }
+      }
+
+      // 2. Check standard Amount column
+      if (amtVal === 0 && amountIdx !== -1 && cols[amountIdx]) {
+        const rawAmt = parseFloat(cols[amountIdx].replace(/,/g, ''));
+        if (!isNaN(rawAmt)) {
+          if (rawAmt < 0) {
+            amtVal = Math.abs(rawAmt);
+            typeVal = 'expense';
+          } else {
+            amtVal = rawAmt;
+            if (typeIdx !== -1 && cols[typeIdx]) {
+              typeVal = cols[typeIdx].toLowerCase().includes('inc') ? 'income' : 'expense';
+            } else if (isIncomeFile) {
+              typeVal = 'income';
+            }
+          }
+        }
+      }
+
+      // 3. Fallback: check 2nd column if amount not resolved
+      if (amtVal === 0 && cols[1]) {
+        const fallbackAmt = parseFloat(cols[1].replace(/,/g, ''));
+        if (!isNaN(fallbackAmt) && fallbackAmt > 0) {
+          amtVal = fallbackAmt;
+        }
+      }
+
+      if (amtVal <= 0) continue;
+
+      const dateVal =
+        dateIdx !== -1 && cols[dateIdx] ? normalizeDate(cols[dateIdx]) : new Date().toISOString().split('T')[0];
+      const noteVal =
+        noteIdx !== -1 && cols[noteIdx]
+          ? cols[noteIdx]
+          : typeVal === 'income'
+          ? 'Income Deposit'
+          : 'Bank Expense';
+      const catVal =
+        catIdx !== -1 && cols[catIdx] ? cols[catIdx] : typeVal === 'income' ? 'Salary' : 'Other';
+
+      // Resolve Wallet
+      let rowWalletId = defaultWalletId;
+      if (walletIdx !== -1 && cols[walletIdx]) {
+        const wMatch = wallets.find((w) => w.name.toLowerCase() === cols[walletIdx].toLowerCase());
+        if (wMatch) rowWalletId = wMatch.id;
+      }
 
       items.push({
         type: typeVal,
-        amount: Math.abs(amtVal),
+        amount: amtVal,
         category: catVal,
         note: noteVal,
         date: dateVal,
-        wallet_id: defaultWalletId,
+        wallet_id: rowWalletId,
       });
     }
 
     if (items.length === 0) {
-      setError('Could not identify transactions in the CSV. Ensure headers include Date, Amount, Note.');
+      setError(
+        'Could not identify transactions in the CSV. Please ensure headers include Date, Amount, and Note/Description.'
+      );
     } else {
       setParsedRows(items);
     }
@@ -250,40 +392,38 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: Typography.sizes.xs,
-    textAlign: 'center',
     marginTop: 4,
-    maxWidth: 280,
+    textAlign: 'center',
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: Spacing.md,
     borderRadius: Radii.md,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   errorText: {
     fontSize: Typography.sizes.xs,
-    fontWeight: Typography.weights.semibold,
     flex: 1,
   },
   pickerArea: {
     alignItems: 'center',
     justifyContent: 'center',
+    padding: Spacing.xl,
+    borderRadius: Radii.lg,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderRadius: Radii.lg,
-    padding: Spacing.xl,
   },
   pickerText: {
     fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.bold,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     textAlign: 'center',
   },
   pickerSub: {
     fontSize: Typography.sizes.xs,
-    textAlign: 'center',
     marginTop: 4,
+    textAlign: 'center',
   },
   previewHeaderRow: {
     flexDirection: 'row',
@@ -297,17 +437,16 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: Radii.pill,
+    paddingVertical: 2,
+    borderRadius: Radii.sm,
   },
   badgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: Typography.weights.bold,
   },
   previewItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     padding: Spacing.md,
     borderRadius: Radii.md,
     borderWidth: 1,
@@ -315,7 +454,7 @@ const styles = StyleSheet.create({
   },
   previewNote: {
     fontSize: Typography.sizes.sm,
-    fontWeight: Typography.weights.semibold,
+    fontWeight: Typography.weights.medium,
   },
   previewMeta: {
     fontSize: Typography.sizes.xs,
@@ -329,6 +468,6 @@ const styles = StyleSheet.create({
   moreText: {
     textAlign: 'center',
     fontSize: Typography.sizes.xs,
-    marginVertical: Spacing.sm,
+    marginTop: Spacing.xs,
   },
 });

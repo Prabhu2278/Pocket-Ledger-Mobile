@@ -78,8 +78,15 @@ export default function TransactionModal() {
       ? [TRANSFER_CATEGORY]
       : EXPENSE_CATEGORIES;
 
-  // Switch type effects
+  // Switch type effects (Type is locked when editing existing transactions)
   const handleTypeSelect = (newType: TransactionType) => {
+    if (isEditing) {
+      Alert.alert(
+        'Type Cannot Be Changed',
+        `This record is an ${type.toUpperCase()}. Existing transactions cannot be changed to a different type. To change the type, please delete this transaction and create a new one.`
+      );
+      return;
+    }
     setType(newType);
     if (newType === 'income') {
       setCategory('Salary');
@@ -180,78 +187,100 @@ export default function TransactionModal() {
         ) : null}
 
         {/* 1. Transaction Type Segment Picker */}
-        <View style={[styles.typeSelector, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleTypeSelect('expense')}
-            style={[
-              styles.typeTab,
-              type === 'expense' && { backgroundColor: theme.danger, shadowColor: theme.danger },
-            ]}
-          >
-            <Ionicons
-              name="arrow-up-circle-outline"
-              size={16}
-              color={type === 'expense' ? '#ffffff' : theme.textSecondary}
-              style={{ marginRight: 4 }}
-            />
-            <Text
-              style={[
-                styles.typeTabText,
-                { color: type === 'expense' ? '#ffffff' : theme.textSecondary },
-              ]}
-            >
-              Expense
+        <View style={{ marginBottom: Spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <Text style={[styles.inputLabel, { color: theme.textSecondary, marginBottom: 0 }]}>
+              Transaction Type
             </Text>
-          </TouchableOpacity>
+            {isEditing ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceMuted, paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radii.sm }}>
+                <Ionicons name="lock-closed" size={11} color={theme.textMuted} style={{ marginRight: 4 }} />
+                <Text style={{ fontSize: 11, color: theme.textMuted, fontWeight: '600' }}>
+                  Locked ({type.toUpperCase()})
+                </Text>
+              </View>
+            ) : null}
+          </View>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleTypeSelect('income')}
-            style={[
-              styles.typeTab,
-              type === 'income' && { backgroundColor: theme.success, shadowColor: theme.success },
-            ]}
-          >
-            <Ionicons
-              name="arrow-down-circle-outline"
-              size={16}
-              color={type === 'income' ? '#ffffff' : theme.textSecondary}
-              style={{ marginRight: 4 }}
-            />
-            <Text
+          <View style={[styles.typeSelector, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+            <TouchableOpacity
+              activeOpacity={isEditing ? 1 : 0.8}
+              onPress={() => handleTypeSelect('expense')}
+              disabled={isEditing && type !== 'expense'}
               style={[
-                styles.typeTabText,
-                { color: type === 'income' ? '#ffffff' : theme.textSecondary },
+                styles.typeTab,
+                type === 'expense' && { backgroundColor: theme.danger, shadowColor: theme.danger },
+                isEditing && type !== 'expense' && { opacity: 0.25 },
               ]}
             >
-              Income
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="arrow-up-circle-outline"
+                size={16}
+                color={type === 'expense' ? '#ffffff' : theme.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.typeTabText,
+                  { color: type === 'expense' ? '#ffffff' : theme.textSecondary },
+                ]}
+              >
+                Expense
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => handleTypeSelect('transfer')}
-            style={[
-              styles.typeTab,
-              type === 'transfer' && { backgroundColor: theme.info, shadowColor: theme.info },
-            ]}
-          >
-            <Ionicons
-              name="swap-horizontal-outline"
-              size={16}
-              color={type === 'transfer' ? '#ffffff' : theme.textSecondary}
-              style={{ marginRight: 4 }}
-            />
-            <Text
+            <TouchableOpacity
+              activeOpacity={isEditing ? 1 : 0.8}
+              onPress={() => handleTypeSelect('income')}
+              disabled={isEditing && type !== 'income'}
               style={[
-                styles.typeTabText,
-                { color: type === 'transfer' ? '#ffffff' : theme.textSecondary },
+                styles.typeTab,
+                type === 'income' && { backgroundColor: theme.success, shadowColor: theme.success },
+                isEditing && type !== 'income' && { opacity: 0.25 },
               ]}
             >
-              Transfer
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="arrow-down-circle-outline"
+                size={16}
+                color={type === 'income' ? '#ffffff' : theme.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.typeTabText,
+                  { color: type === 'income' ? '#ffffff' : theme.textSecondary },
+                ]}
+              >
+                Income
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={isEditing ? 1 : 0.8}
+              onPress={() => handleTypeSelect('transfer')}
+              disabled={isEditing && type !== 'transfer'}
+              style={[
+                styles.typeTab,
+                type === 'transfer' && { backgroundColor: theme.info, shadowColor: theme.info },
+                isEditing && type !== 'transfer' && { opacity: 0.25 },
+              ]}
+            >
+              <Ionicons
+                name="swap-horizontal-outline"
+                size={16}
+                color={type === 'transfer' ? '#ffffff' : theme.textSecondary}
+                style={{ marginRight: 4 }}
+              />
+              <Text
+                style={[
+                  styles.typeTabText,
+                  { color: type === 'transfer' ? '#ffffff' : theme.textSecondary },
+                ]}
+              >
+                Transfer
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 2. Amount Input */}

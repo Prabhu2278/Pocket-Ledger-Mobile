@@ -144,6 +144,15 @@ export default function TransactionsScreen() {
       }
 
       return true;
+    })
+    .sort((a, b) => {
+      // Sort newest date first
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      const dateDiff = dateB.localeCompare(dateA);
+      if (dateDiff !== 0) return dateDiff;
+      // If same date, newest ID first
+      return (b.id || 0) - (a.id || 0);
     });
   }, [transactions, filters, search]);
 

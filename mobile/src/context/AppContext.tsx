@@ -118,7 +118,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const refreshTransactions = useCallback(async () => {
     try {
       const data = await api.transactions.getAll({ month_key: monthKey });
-      setTransactions(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      list.sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        const dateDiff = dateB.localeCompare(dateA);
+        if (dateDiff !== 0) return dateDiff;
+        return (b.id || 0) - (a.id || 0);
+      });
+      setTransactions(list);
     } catch (err: any) {
       console.warn('[AppContext] Failed to fetch transactions:', err.message);
     }
