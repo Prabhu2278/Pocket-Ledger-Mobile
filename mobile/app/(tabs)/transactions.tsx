@@ -156,6 +156,39 @@ export default function TransactionsScreen() {
     });
   }, [transactions, filters, search]);
 
+  // Summary metrics for KPI header cards
+  const summaryIncome = useMemo(() => {
+    if (activeFilterCount > 0 || search.trim()) {
+      return filteredTransactions
+        .filter((t) => (t.type || '').toLowerCase() === 'income')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    }
+    return (
+      insights?.total_income ??
+      transactions
+        .filter((t) => (t.type || '').toLowerCase() === 'income')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0)
+    );
+  }, [filteredTransactions, transactions, insights, activeFilterCount, search]);
+
+  const summaryExpense = useMemo(() => {
+    if (activeFilterCount > 0 || search.trim()) {
+      return filteredTransactions
+        .filter((t) => (t.type || '').toLowerCase() === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+    }
+    return (
+      insights?.total_spent ??
+      transactions
+        .filter((t) => (t.type || '').toLowerCase() === 'expense')
+        .reduce((sum, t) => sum + Number(t.amount || 0), 0)
+    );
+  }, [filteredTransactions, transactions, insights, activeFilterCount, search]);
+
+  const summaryTxCount = useMemo(() => {
+    return filteredTransactions.length;
+  }, [filteredTransactions]);
+
   const handleResetFilters = () => {
     setFilters({
       type: 'all',
@@ -349,19 +382,81 @@ export default function TransactionsScreen() {
           />
         }
         ListHeaderComponent={
-          insights ? (
+          (insights || transactions.length > 0) ? (
             <View style={styles.kpiContainer}>
               <View style={styles.kpiRow}>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
-                  <Text style={[styles.kpiValue, { color: theme.success }]}>
-                    {formatCurrency(insights.total_income, currency)}
+                {/* 1. Income Card */}
+                <View
+                  style={[
+                    styles.kpiCard,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderTopColor: theme.success,
+                      borderTopWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.kpiHeaderRow}>
+                    <Ionicons name="arrow-down-circle" size={13} color={theme.success} />
+                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
+                  </View>
+                  <Text
+                    style={[styles.kpiValue, { color: theme.success }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    +{formatCurrency(summaryIncome, currency)}
                   </Text>
                 </View>
-                <View style={[styles.kpiCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-                  <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
-                  <Text style={[styles.kpiValue, { color: theme.danger }]}>
-                    {formatCurrency(insights.total_spent, currency)}
+
+                {/* 2. Expenses Card */}
+                <View
+                  style={[
+                    styles.kpiCard,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderTopColor: theme.danger,
+                      borderTopWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.kpiHeaderRow}>
+                    <Ionicons name="arrow-up-circle" size={13} color={theme.danger} />
+                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
+                  </View>
+                  <Text
+                    style={[styles.kpiValue, { color: theme.danger }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    -{formatCurrency(summaryExpense, currency)}
+                  </Text>
+                </View>
+
+                {/* 3. Total Transactions Card */}
+                <View
+                  style={[
+                    styles.kpiCard,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      borderTopColor: theme.primary,
+                      borderTopWidth: 2,
+                    },
+                  ]}
+                >
+                  <View style={styles.kpiHeaderRow}>
+                    <Ionicons name="receipt-outline" size={13} color={theme.primary} />
+                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL TXNS</Text>
+                  </View>
+                  <Text
+                    style={[styles.kpiValue, { color: theme.primary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {summaryTxCount}
                   </Text>
                 </View>
               </View>
@@ -511,18 +606,26 @@ const styles = StyleSheet.create({
   },
   kpiRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 8,
   },
   kpiCard: {
     flex: 1,
     borderWidth: 1,
     borderRadius: Radii.md,
-    padding: Spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  kpiHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
   },
   kpiLabel: {
-    fontSize: Typography.sizes.xs,
-    fontWeight: Typography.weights.medium,
-    marginBottom: 4,
+    fontSize: 10,
+    fontWeight: Typography.weights.bold,
+    letterSpacing: 0.3,
   },
   kpiValue: {
     fontSize: Typography.sizes.base,

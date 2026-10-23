@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,7 +57,7 @@ export default function TransactionModal() {
     existingTx?.amount !== undefined ? String(existingTx.amount) : ''
   );
   const [category, setCategory] = useState<string>(
-    existingTx?.category || (type === 'income' ? 'Salary' : type === 'transfer' ? 'Transfer' : 'Food')
+    existingTx?.category || (type === 'transfer' ? 'Transfer' : '')
   );
   const [note, setNote] = useState<string>(existingTx?.note || existingTx?.title || '');
   const [date, setDate] = useState<string>(existingTx?.date || getTodayIso());
@@ -69,6 +71,8 @@ export default function TransactionModal() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
 
   // Available categories based on selected transaction type
   const availableCategories =
@@ -77,6 +81,20 @@ export default function TransactionModal() {
       : type === 'transfer'
       ? [TRANSFER_CATEGORY]
       : EXPENSE_CATEGORIES;
+
+  // Selected category object with icon and color (null if not chosen yet)
+  const selectedCatObj = category
+    ? availableCategories.find((c) => c.name.toLowerCase() === category.toLowerCase()) || {
+        name: category,
+        icon: 'pricetag-outline',
+        color: theme.primary,
+      }
+    : null;
+
+  // Filtered categories for dropdown search
+  const filteredCategories = availableCategories.filter((cat) =>
+    cat.name.toLowerCase().includes(categorySearch.toLowerCase().trim())
+  );
 
   // Switch type effects (Type is locked when editing existing transactions)
   const handleTypeSelect = (newType: TransactionType) => {
@@ -88,12 +106,10 @@ export default function TransactionModal() {
       return;
     }
     setType(newType);
-    if (newType === 'income') {
-      setCategory('Salary');
-    } else if (newType === 'transfer') {
+    if (newType === 'transfer') {
       setCategory('Transfer');
     } else {
-      setCategory('Food');
+      setCategory(''); // Require manual category selection
     }
   };
 
@@ -101,6 +117,11 @@ export default function TransactionModal() {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
       setErrorMessage('Please enter a valid amount greater than 0.');
+      return;
+    }
+
+    if (type !== 'transfer' && !category.trim()) {
+      setErrorMessage('Please choose a category.');
       return;
     }
 
@@ -294,47 +315,72 @@ export default function TransactionModal() {
           leftIcon={<Ionicons name="pricetag-outline" size={20} color={theme.textMuted} />}
         />
 
-        {/* 3. Category Selector Chips */}
+        {/* 3. Category Selector Drop Box */}
         {type !== 'transfer' ? (
           <View style={styles.sectionGroup}>
-            <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-              {availableCategories.map((cat) => {
-                const isSelected = category.toLowerCase() === cat.name.toLowerCase();
-                return (
-                  <TouchableOpacity
-                    key={cat.name}
-                    activeOpacity={0.7}
-                    onPress={() => setCategory(cat.name)}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: isSelected ? cat.color : theme.surface,
-                        borderColor: isSelected ? cat.color : theme.border,
-                      },
-                    ]}
-                  >
-                    <Ionicons
-                      name={cat.icon as any}
-                      size={15}
-                      color={isSelected ? '#ffffff' : cat.color}
-                      style={{ marginRight: 6 }}
-                    />
-                    <Text
+            <View style={styles.labelRow}>
+              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Category</Text>
+              {!category ? (
+                <Text style={[styles.requiredBadge, { color: theme.danger }]}>* Choose category</Text>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                setCategorySearch('');
+                setShowCategoryDropdown(true);
+              }}
+              style={[
+                styles.categoryDropBox,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: !category ? theme.border : theme.primary,
+                },
+              ]}
+            >
+              <View style={styles.categoryDropBoxLeft}>
+                {selectedCatObj ? (
+                  <>
+                    <View
                       style={[
-                        styles.categoryChipText,
-                        {
-                          color: isSelected ? '#ffffff' : theme.text,
-                          fontWeight: isSelected ? Typography.weights.bold : Typography.weights.regular,
-                        },
+                        styles.categoryIconBadge,
+                        { backgroundColor: `${selectedCatObj.color}20` },
                       ]}
                     >
-                      {cat.name}
+                      <Ionicons
+                        name={selectedCatObj.icon as any}
+                        size={18}
+                        color={selectedCatObj.color}
+                      />
+                    </View>
+                    <Text style={[styles.categoryDropBoxText, { color: theme.text }]}>
+                      {selectedCatObj.name}
                     </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                  </>
+                ) : (
+                  <>
+                    <View
+                      style={[
+                        styles.categoryIconBadge,
+                        { backgroundColor: theme.surfaceMuted },
+                      ]}
+                    >
+                      <Ionicons
+                        name="pricetag-outline"
+                        size={17}
+                        color={theme.textMuted}
+                      />
+                    </View>
+                    <Text style={[styles.categoryDropBoxPlaceholder, { color: theme.textMuted }]}>
+                      Choose a category...
+                    </Text>
+                  </>
+                )}
+              </View>
+              <View style={styles.categoryDropBoxRight}>
+                <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+              </View>
+            </TouchableOpacity>
           </View>
         ) : null}
 
@@ -480,6 +526,123 @@ export default function TransactionModal() {
           selectedDate={date}
           onSelectDate={(d) => setDate(d || getTodayIso())}
         />
+
+        {/* Category Dropdown Selection Modal */}
+        <Modal
+          visible={showCategoryDropdown}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowCategoryDropdown(false)}
+        >
+          <View style={styles.dropdownModalOverlay}>
+            <TouchableOpacity
+              style={styles.dropdownModalBackdrop}
+              activeOpacity={1}
+              onPress={() => setShowCategoryDropdown(false)}
+            />
+
+            <View
+              style={[
+                styles.dropdownModalContent,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                },
+              ]}
+            >
+              {/* Modal Header */}
+              <View style={[styles.dropdownModalHeader, { borderBottomColor: theme.border }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={[styles.modalHeaderBadge, { backgroundColor: theme.primarySoft }]}>
+                    <Ionicons name="pricetags-outline" size={16} color={theme.primary} />
+                  </View>
+                  <Text style={[styles.dropdownModalTitle, { color: theme.text }]}>Select Category</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowCategoryDropdown(false)}
+                  style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceMuted }]}
+                >
+                  <Ionicons name="close" size={18} color={theme.text} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Search in Dropdown */}
+              <View
+                style={[
+                  styles.dropdownSearchWrapper,
+                  { backgroundColor: theme.background, borderColor: theme.border },
+                ]}
+              >
+                <Ionicons name="search-outline" size={16} color={theme.textMuted} style={{ marginRight: 6 }} />
+                <TextInput
+                  placeholder="Search categories..."
+                  placeholderTextColor={theme.textMuted}
+                  value={categorySearch}
+                  onChangeText={setCategorySearch}
+                  style={[styles.dropdownSearchInput, { color: theme.text }]}
+                  autoCapitalize="none"
+                />
+                {categorySearch ? (
+                  <TouchableOpacity onPress={() => setCategorySearch('')}>
+                    <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* Categories List */}
+              <ScrollView style={styles.dropdownList} showsVerticalScrollIndicator={false}>
+                {filteredCategories.map((cat) => {
+                  const isSelected = category.toLowerCase() === cat.name.toLowerCase();
+                  return (
+                    <TouchableOpacity
+                      key={cat.name}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setCategory(cat.name);
+                        setShowCategoryDropdown(false);
+                      }}
+                      style={[
+                        styles.categoryListItem,
+                        { borderBottomColor: theme.border },
+                        isSelected && { backgroundColor: theme.primarySoft },
+                      ]}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <View
+                          style={[
+                            styles.categoryItemBadge,
+                            { backgroundColor: `${cat.color}20` },
+                          ]}
+                        >
+                          <Ionicons name={cat.icon as any} size={18} color={cat.color} />
+                        </View>
+                        <Text
+                          style={[
+                            styles.categoryListItemText,
+                            { color: theme.text },
+                            isSelected && { fontWeight: Typography.weights.bold, color: theme.primary },
+                          ]}
+                        >
+                          {cat.name}
+                        </Text>
+                      </View>
+                      {isSelected ? (
+                        <Ionicons name="checkmark-circle" size={20} color={theme.primary} />
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })}
+                {filteredCategories.length === 0 ? (
+                  <View style={{ padding: Spacing.xl, alignItems: 'center' }}>
+                    <Text style={{ color: theme.textMuted, fontSize: Typography.sizes.sm }}>
+                      No categories found matching "{categorySearch}"
+                    </Text>
+                  </View>
+                ) : null}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -531,26 +694,147 @@ const styles = StyleSheet.create({
   sectionGroup: {
     marginBottom: Spacing.md,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xs,
+  },
+  requiredBadge: {
+    fontSize: Typography.sizes.xs,
+    fontWeight: Typography.weights.semibold,
+  },
   inputLabel: {
     fontSize: Typography.sizes.sm,
     fontWeight: Typography.weights.semibold,
     marginBottom: Spacing.xs,
   },
-  categoryScroll: {
-    paddingVertical: 4,
-    gap: Spacing.xs,
-  },
-  categoryChip: {
+  categoryDropBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: Radii.pill,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderRadius: Radii.md,
     borderWidth: 1,
-    marginRight: 6,
+    minHeight: 52,
   },
-  categoryChipText: {
-    fontSize: Typography.sizes.xs,
+  categoryDropBoxLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  categoryIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryDropBoxText: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.semibold,
+  },
+  categoryDropBoxPlaceholder: {
+    fontSize: Typography.sizes.base,
+    fontStyle: 'italic',
+  },
+  categoryDropBoxRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropdownModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  dropdownModalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  dropdownModalContent: {
+    width: '100%',
+    maxHeight: '75%',
+    borderRadius: Radii.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  dropdownModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  modalHeaderBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: Radii.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownModalTitle: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.bold,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dropdownSearchWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    borderRadius: Radii.md,
+    borderWidth: 1,
+  },
+  dropdownSearchInput: {
+    flex: 1,
+    fontSize: Typography.sizes.sm,
+    paddingVertical: 2,
+  },
+  dropdownList: {
+    maxHeight: 320,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  categoryListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radii.md,
+    marginVertical: 2,
+  },
+  categoryItemBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryListItemText: {
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.medium,
   },
   walletScroll: {
     paddingVertical: 4,
