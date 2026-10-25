@@ -19,6 +19,13 @@ import { Spacing, Radii, Typography } from '../theme';
 
 export type AlertType = 'info' | 'success' | 'warning' | 'danger' | 'confirm';
 
+export interface AlertButtonConfig {
+  text: string;
+  onPress?: () => void | Promise<void>;
+  variant?: 'primary' | 'danger' | 'success' | 'secondary';
+  loading?: boolean;
+}
+
 export interface CustomAlertDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,15 +34,11 @@ export interface CustomAlertDialogProps {
   title: string;
   subtitle?: string;
   message: string;
-  primaryButton?: {
-    text: string;
-    onPress: () => void | Promise<void>;
-    variant?: 'primary' | 'danger' | 'success' | 'secondary';
-    loading?: boolean;
-  };
+  buttons?: AlertButtonConfig[];
+  primaryButton?: AlertButtonConfig;
   secondaryButton?: {
     text: string;
-    onPress: () => void;
+    onPress?: () => void;
   };
 }
 
@@ -47,6 +50,7 @@ export const CustomAlertDialog: React.FC<CustomAlertDialogProps> = ({
   title,
   subtitle,
   message,
+  buttons,
   primaryButton,
   secondaryButton,
 }) => {
@@ -58,44 +62,74 @@ export const CustomAlertDialog: React.FC<CustomAlertDialogProps> = ({
   let resolvedIcon: keyof typeof Ionicons.glyphMap = icon || 'information-circle';
   let badgeBg = theme.primarySoft;
   let iconColor = theme.primary;
-  let primaryBtnBg = theme.primary;
+  let defaultBtnBg = theme.primary;
 
   switch (type) {
     case 'success':
       if (!icon) resolvedIcon = 'checkmark-circle';
       badgeBg = theme.successSoft;
       iconColor = theme.success;
-      primaryBtnBg = theme.success;
+      defaultBtnBg = theme.success;
       break;
     case 'danger':
       if (!icon) resolvedIcon = 'alert-circle';
       badgeBg = theme.dangerSoft;
       iconColor = theme.danger;
-      primaryBtnBg = theme.danger;
+      defaultBtnBg = theme.danger;
       break;
     case 'warning':
       if (!icon) resolvedIcon = 'warning';
       badgeBg = theme.warningSoft;
       iconColor = theme.warning;
-      primaryBtnBg = theme.warning;
+      defaultBtnBg = theme.warning;
       break;
     case 'confirm':
       if (!icon) resolvedIcon = 'help-circle';
       badgeBg = theme.primarySoft;
       iconColor = theme.primary;
-      primaryBtnBg = theme.primary;
+      defaultBtnBg = theme.primary;
       break;
     default:
       break;
   }
 
-  if (primaryButton?.variant === 'danger') {
-    primaryBtnBg = theme.danger;
-  } else if (primaryButton?.variant === 'success') {
-    primaryBtnBg = theme.success;
-  } else if (primaryButton?.variant === 'secondary') {
-    primaryBtnBg = theme.surfaceMuted;
+  // Normalize buttons list
+  let resolvedButtons: AlertButtonConfig[] = [];
+  if (buttons && buttons.length > 0) {
+    resolvedButtons = buttons;
+  } else {
+    if (secondaryButton) {
+      resolvedButtons.push({
+        text: secondaryButton.text,
+        onPress: secondaryButton.onPress,
+        variant: 'secondary',
+      });
+    }
+    if (primaryButton) {
+      resolvedButtons.push(primaryButton);
+    }
   }
+
+  if (resolvedButtons.length === 0) {
+    resolvedButtons.push({
+      text: 'OK',
+      variant: 'primary',
+      onPress: onClose,
+    });
+  }
+
+  const isVertical = resolvedButtons.length > 2;
+
+  const getButtonBg = (btn: AlertButtonConfig) => {
+    if (btn.variant === 'danger') return theme.danger;
+    if (btn.variant === 'success') return theme.success;
+    if (btn.variant === 'secondary') return theme.surfaceMuted;
+    return defaultBtnBg;
+  };
+
+  const isBtnSecondary = (btn: AlertButtonConfig) => {
+    return btn.variant === 'secondary';
+  };
 
   return (
     <Modal
@@ -128,50 +162,45 @@ export const CustomAlertDialog: React.FC<CustomAlertDialogProps> = ({
               ) : null}
 
               {/* Message Content */}
-              <Text style={[styles.message, { color: theme.textSecondary }]}>
-                {message}
-              </Text>
+              {message ? (
+                <Text style={[styles.message, { color: theme.textSecondary }]}>
+                  {message}
+                </Text>
+              ) : null}
 
               {/* Action Buttons */}
-              <View style={styles.actionsRow}>
-                {secondaryButton ? (
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={secondaryButton.onPress}
-                    style={[
-                      styles.btn,
-                      styles.secondaryBtn,
-                      {
-                        backgroundColor: theme.surfaceMuted,
-                        borderColor: theme.border,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.secondaryBtnText, { color: theme.text }]}>
-                      {secondaryButton.text}
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
+              <View style={[styles.actionsRow, isVertical && styles.actionsColumn]}>
+                {resolvedButtons.map((btn, idx) => {
+                  const secondary = isBtnSecondary(btn);
+                  const bg = getButtonBg(btn);
 
-                {primaryButton ? (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={primaryButton.onPress}
-                    disabled={primaryButton.loading}
-                    style={[
-                      styles.btn,
-                      styles.primaryBtn,
-                      { backgroundColor: primaryBtnBg },
-                      !secondaryButton && styles.fullWidthBtn,
-                    ]}
-                  >
-                    {primaryButton.loading ? (
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    ) : (
-                      <Text style={styles.primaryBtnText}>{primaryButton.text}</Text>
-                    )}
-                  </TouchableOpacity>
-                ) : null}
+                  return (
+                    <TouchableOpacity
+                      key={`btn-${idx}-${btn.text}`}
+                      activeOpacity={0.8}
+                      onPress={btn.onPress}
+                      disabled={btn.loading}
+                      style={[
+                        styles.btn,
+                        secondary ? [styles.secondaryBtn, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }] : { backgroundColor: bg },
+                        !isVertical && resolvedButtons.length === 1 && styles.fullWidthBtn,
+                        isVertical && styles.fullWidthBtn,
+                      ]}
+                    >
+                      {btn.loading ? (
+                        <ActivityIndicator size="small" color={secondary ? theme.text : '#ffffff'} />
+                      ) : (
+                        <Text
+                          style={[
+                            secondary ? [styles.secondaryBtnText, { color: theme.text }] : styles.primaryBtnText,
+                          ]}
+                        >
+                          {btn.text}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           </TouchableWithoutFeedback>
@@ -232,6 +261,11 @@ const styles = StyleSheet.create({
   },
   actionsRow: {
     flexDirection: 'row',
+    gap: Spacing.sm,
+    width: '100%',
+  },
+  actionsColumn: {
+    flexDirection: 'column',
     gap: Spacing.sm,
     width: '100%',
   },

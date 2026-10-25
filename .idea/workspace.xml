@@ -5,11 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4aaa50fb-7a91-4fb8-9539-c4daf9d3c7d8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/deviceHardwareInput.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deviceHardwareInput.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/app/modal/csv.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/app/modal/csv.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/src/components/FilterDrawerModal.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/components/FilterDrawerModal.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/src/components/Header.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/components/Header.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/app/_layout.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/src/components/CustomAlertDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/components/CustomAlertDialog.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

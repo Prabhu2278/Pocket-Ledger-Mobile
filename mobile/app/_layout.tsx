@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { AppProvider } from '../src/context/AppContext';
+import { AlertProvider } from '../src/context/AlertContext';
 import { LoadingView } from '../src/components/LoadingView';
 
 function RootNavigation() {
@@ -100,7 +101,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <AppProvider>
-            <RootNavigation />
+            <AlertProvider>
+              <RootNavigation />
+            </AlertProvider>
           </AppProvider>
         </AuthProvider>
       </ThemeProvider>
