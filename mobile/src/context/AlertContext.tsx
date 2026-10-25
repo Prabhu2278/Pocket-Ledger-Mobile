@@ -7,7 +7,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Alert as RNAlert, AlertButton } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { CustomAlertDialog, AlertType, AlertButtonConfig } from '../components/CustomAlertDialog';
+import { CustomAlertDialog, AlertType, AlertButtonConfig } from '../components/modals/CustomAlertDialog';
 
 export interface AlertConfig {
   type?: AlertType;

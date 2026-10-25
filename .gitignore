@@ -1,15 +1,35 @@
-# Dependencies
-node_modules/
+# Python & Virtual Environments
+venv/
+.venv/
 backend/venv/
+backend/.venv/
 __pycache__/
 **/__pycache__/
 *.py[cod]
+*$py.class
+*.pytest_cache/
 
-# Environment & local credentials
-.env
+# Databases & Local Data
+backend/data/*.db
+backend/data/*.sqlite3
 *.db
-.DS_Store
+*.sqlite3
 
-# Build artifacts
-frontend/dist/
-dist/
+# Environment Variables & Secrets
+.env
+.env.local
+backend/.env
+mobile/.env
+
+# Node & Expo
+node_modules/
+**/node_modules/
+.expo/
+**/dist/
+*.tsbuildinfo
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

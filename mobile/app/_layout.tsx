@@ -10,7 +10,7 @@ import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { AppProvider } from '../src/context/AppContext';
 import { AlertProvider } from '../src/context/AlertContext';
-import { LoadingView } from '../src/components/LoadingView';
+import { LoadingView } from '../src/components/ui/LoadingView';
 
 function RootNavigation() {
   const { isAuthenticated, isLoading } = useAuth();

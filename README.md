@@ -1,173 +1,151 @@
-# 💼 Pocket Ledger — Full-Stack Personal Treasury & Financial Management System
+# 📱 Pocket Ledger — Mobile Full-Stack Financial Management System
 
-Pocket Ledger is a production-ready, full-stack personal finance and treasury web application built with a high-performance **React 18 + Vite** frontend and a modular **FastAPI** backend backed by **PostgreSQL** (with automated local SQLite fallback).
-
-It features comprehensive daily transaction management (Expenses, Income, and Transfers), multi-account wallet tracking with real-time balance calculations, monthly budget monitoring with SVG gauge meters, slide-over filter drawers, bank statement CSV import/export, and complete user authentication.
+Pocket Ledger is a clean, production-architecture mobile personal finance application built with **React Native (Expo SDK, TypeScript, Expo Router)** and a high-performance **FastAPI (Python)** backend backed by **PostgreSQL** (with automated local SQLite fallback).
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Mobile**: React Native, Expo SDK, TypeScript, Expo Router, Expo SecureStore
-- **Frontend**: React 18, Vite, Vanilla CSS Design System with CSS Custom Properties, Lucide Icons
-- **Backend**: Python 3.11+, FastAPI, Uvicorn, Pydantic v2
-- **Database & ORM**: PostgreSQL / SQLite fallback, SQLAlchemy 2.0 ORM, Alembic migrations
+- **Mobile Client**: React Native, Expo SDK, TypeScript, Expo Router, Expo SecureStore, Lucide / Ionicons
+- **Backend API**: Python 3.10+, FastAPI, Uvicorn, Pydantic v2
+- **Database & ORM**: PostgreSQL / SQLite, SQLAlchemy 2.0 ORM, Alembic migrations
 - **Authentication**: Bcrypt password hashing, PyJWT signed access tokens, Bearer token authorization
-- **Testing**: Pytest with isolated in-memory SQLite fixtures, FastAPI TestClient, HTTPX
-- **DevOps**: Docker, Docker Compose, Nginx
 
 ---
 
 ## 📁 Repository Structure
 
 ```text
-Pocket-Ledger/
-├── .env.example              # Reference environment variables template
-├── docker-compose.yml        # Docker orchestration (Postgres, FastAPI, Vite)
-├── start.bat                 # One-click Windows development startup
-├── PROJECT_STRUCTURE.md      # Detailed file-by-file structure breakdown
-│
+pocket-ledger/
+├── .env.example              # Development environment variables template
+├── .gitignore                # Git ignore configuration
+├── README.md                 # Project setup and documentation
 ├── docs/
 │   └── ARCHITECTURE.md       # Full architecture & domain design documentation
+├── scripts/
+│   └── start.bat             # One-click Windows dev startup script
 │
-├── backend/                  # FastAPI Backend API & Database models
-│
-├── frontend/                 # React 18 + Vite Web Application
+├── backend/                  # FastAPI Backend API & Database
+│   ├── .env.example          # Backend environment template
+│   ├── alembic.ini           # Database migration configuration
+│   ├── requirements.txt      # Python dependencies
+│   ├── alembic/              # Database migration versions
+│   │   ├── env.py
+│   │   └── versions/
+│   ├── data/                 # Local dev database directory (git-ignored)
+│   └── app/
+│       ├── main.py           # FastAPI application entry point
+│       ├── api/
+│       │   ├── deps.py       # Authentication & DB session dependencies
+│       │   └── v1/
+│       │       ├── router.py # API v1 router
+│       │       └── endpoints/# Modular route controllers
+│       │           ├── auth.py
+│       │           ├── categories.py
+│       │           ├── csv.py
+│       │           ├── expenses.py
+│       │           ├── health.py
+│       │           ├── income.py
+│       │           ├── insights.py
+│       │           ├── settings.py
+│       │           ├── transactions.py
+│       │           ├── wallets.py
+│       │           └── analytics.py
+│       ├── core/             # Config, database engine, security, logging
+│       ├── models/           # SQLAlchemy ORM models
+│       ├── repositories/     # Database queries and CRUD operations
+│       ├── schemas/          # Pydantic validation schemas
+│       └── services/         # Business logic services
 │
 └── mobile/                   # React Native + Expo Mobile Application
-    ├── app/                  # Expo Router file-based navigation
-    ├── src/                  # Components, Context, Services, Theme, Types
+    ├── .env.example          # Mobile environment variables template
     ├── app.json              # Expo application manifest
-    ├── package.json          # Mobile dependencies
-    └── README.md             # Mobile setup & network configuration
+    ├── package.json          # Mobile dependencies & scripts
+    ├── tsconfig.json         # TypeScript strict configuration
+    ├── app/                  # Expo Router file-based screens
+    │   ├── _layout.tsx       # Root layout with theme, auth & alert providers
+    │   ├── login.tsx         # User login screen
+    │   ├── register.tsx      # User registration screen
+    │   ├── (tabs)/           # Bottom navigation tabs
+    │   │   ├── index.tsx     # Dashboard
+    │   │   ├── transactions.tsx
+    │   │   ├── wallets.tsx
+    │   │   └── settings.tsx
+    │   └── modal/            # Full-screen dialogs (Transaction, Wallet, Category, CSV)
+    ├── assets/images/        # App icons, splash screens, favicon
+    ├── scripts/              # Connectivity verification script
+    └── src/
+        ├── api/              # API client & SecureStore service
+        ├── components/       # Grouped UI components (ui/, cards/, modals/, charts/)
+        ├── constants/        # Categories & default configurations
+        ├── context/          # React contexts (Auth, App, Theme, Alert)
+        ├── theme/            # Theme tokens, spacing, typography, radii
+        ├── types/            # TypeScript interfaces & types
+        └── utils/            # Currency and date utilities
 ```
 
 ---
 
-## 🚀 Prerequisites
+## 🚀 Getting Started (Development)
 
-1. **Node.js** (v18+ recommended) & `npm`
-2. **Python** (v3.10+ recommended)
-3. *(Optional)* **PostgreSQL** running on port `5432` *(if PostgreSQL is not running, the application will automatically initialize a local SQLite `expenses.db` database seamlessly)*
-
----
-
-## ⚙️ Configuration & Environment Variables
-
-### 1. Backend Environment Setup (`backend/.env`)
-Copy `.env.example` to `backend/.env`:
-```env
-DATABASE_URL=postgresql+psycopg2://postgres:YOUR_PASSWORD@localhost:5432/expense_tracker
-SECRET_KEY=pocket-ledger-super-secure-jwt-secret-key-2026-production
-PORT=8000
-```
-> **Note**: If PostgreSQL is not detected, the backend will automatically fallback to `sqlite:///./expenses.db` without crashing!
-
-### 2. Frontend Environment Setup (`frontend/.env`)
-```env
-VITE_API_BASE_URL=http://localhost:8000
-VITE_API_URL=http://localhost:8000/api
-```
+### 1. Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** & `npm`
+- **Expo Go** app on your physical mobile device, or an Android/iOS emulator
 
 ---
 
-## 🏃 Quick Start Guide
-
-### Option A: One-Click Startup (Windows)
-Double-click [start.bat](file:///d:/expense-tracker/start.bat) in the project root. This launches both the backend and frontend dev servers in separate console windows automatically.
-
----
-
-### Option B: Manual Startup
-
-#### 1. Start the Backend:
-```bash
-cd backend
-# Windows
-.\venv\Scripts\activate
-# macOS / Linux: source venv/bin/activate
-
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-- API Base: `http://localhost:8000`
-- Interactive Swagger Docs: `http://localhost:8000/docs`
-- Health Probe: `http://localhost:8000/health`
-
-#### 2. Start the Frontend:
-In a new terminal window:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-- Application Web UI: `http://localhost:5173`
+### 2. Backend Setup
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Create and activate a Python virtual environment:
+   ```bash
+   python -m venv venv
+   # Windows:
+   .\venv\Scripts\activate
+   # macOS/Linux:
+   source venv/bin/activate
+   ```
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Copy the environment variables:
+   ```bash
+   copy .env.example .env
+   ```
+5. Start the FastAPI development server:
+   ```bash
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 9000
+   ```
+   Interactive API documentation will be available at [http://localhost:9000/docs](http://localhost:9000/docs).
 
 ---
 
-## 🧪 Running Automated Tests
+### 3. Mobile App Setup
+1. Navigate to the mobile directory:
+   ```bash
+   cd mobile
+   ```
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Copy environment variables:
+   ```bash
+   copy .env.example .env
+   ```
+   > **Note for Physical Devices**: Set `EXPO_PUBLIC_API_URL=http://YOUR_PC_LAN_IP:9000` in `mobile/.env` so your physical device can reach the backend over your Wi-Fi network.
 
-Pocket Ledger includes an isolated test suite that runs against an in-memory SQLite database, guaranteeing zero impact on your production or local data:
-
-```bash
-cd backend
-pytest -v
-```
-
-All 6 core verification suites will execute and validate:
-- User registration, login, and JWT Bearer token authentication
-- Transaction creation, retrieval, updates, and deletion
-- Real-time wallet balance math and automated expense deductions
-- Wallet accounts CRUD
-- Monthly budget targets and updates
-- Financial analytics and spending category breakdowns
-
----
-
-## 🐳 Docker Deployment
-
-To launch the complete application stack (PostgreSQL + FastAPI + Nginx React Frontend):
-
-```bash
-docker-compose up --build
-```
-- Frontend: `http://localhost:5173`
-- Backend API: `http://localhost:9000`
-- PostgreSQL: `localhost:5432`
+4. Start the Expo development server:
+   ```bash
+   npx expo start
+   ```
+5. Scan the QR code using the **Expo Go** app on your Android or iOS device, or press `a` for Android Emulator / `i` for iOS Simulator.
 
 ---
 
-## 🌟 Key Application Features
-
-1. **Unified Financial Ledger**:
-   - Record Expenses, Income, and Transfers with amount, category, account/wallet, and date.
-   - Live multi-column sorting (Date, Amount, Category).
-   - Instant search across descriptions, notes, and categories.
-   - Configurable pagination (10, 20, 50, 100 rows per page).
-   - 5-second **Undo Delete** safety toast.
-2. **Multi-Account & Wallet System**:
-   - Manage Bank Accounts, Digital/UPI wallets, Cash, and Credit Cards.
-   - Real-time balance calculations automatically deducted from every expense.
-   - Account-to-account balance transfers.
-3. **Advanced Slide-Over Filter Drawer**:
-   - Filter by date range (start/end date).
-   - Filter by amount range (min/max).
-   - Filter by account/wallet and payment method.
-4. **CSV Bank Statement Tools**:
-   - Drag-and-drop CSV statement parser with real-time row preview.
-   - One-click bulk ledger import.
-   - Filtered CSV transaction export.
-5. **Monthly Budgets & Analytics**:
-   - Month-by-month historical switcher (‹ Month Year ›).
-   - SVG circular Budget Ring with dynamic threshold color alerts.
-   - Last 7 days spending bar chart.
-   - Category spending percentage breakdown.
-6. **Authentication & Settings**:
-   - Secure user registration, login, and password management.
-   - Multi-currency support (INR `₹`, USD `$`, EUR `€`, GBP `£`).
-   - Light and dark theme persistence.
-
----
-
-## 📄 License
-MIT License. Built for modern financial management.
+### 4. One-Click Launch (Windows)
+Run `scripts/start.bat` from the root directory to automatically launch both the FastAPI backend and the Expo development server in separate console windows.

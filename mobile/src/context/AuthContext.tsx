@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { storage } from '../services/storage';
-import { api, setOnUnauthorizedHandler } from '../services/api';
+import { storage } from '../api/storage';
+import { api, setOnUnauthorizedHandler } from '../api/api';
 import { User, TokenResponse } from '../types';
 
 interface AuthContextValue {

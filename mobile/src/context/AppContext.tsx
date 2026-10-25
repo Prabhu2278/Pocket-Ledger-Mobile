@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { api } from '../services/api';
-import { storage } from '../services/storage';
+import { api } from '../api/api';
+import { storage } from '../api/storage';
 import { useAuth } from './AuthContext';
 import {
   Wallet,

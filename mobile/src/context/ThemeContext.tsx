@@ -5,7 +5,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 import { lightTheme, darkTheme, ThemeColors, ThemeMode } from '../theme';
-import { storage } from '../services/storage';
+import { storage } from '../api/storage';
 
 interface ThemeContextValue {
   themeMode: ThemeMode;

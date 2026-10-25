@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, Float, String, Date, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from app.database import Base
+from app.core.database import Base
 
 class Income(Base):
     __tablename__ = "incomes"

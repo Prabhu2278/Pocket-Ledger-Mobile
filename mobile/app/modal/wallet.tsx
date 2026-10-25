@@ -17,8 +17,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
-import { Input } from '../../src/components/Input';
-import { Button } from '../../src/components/Button';
+import { Input } from '../../src/components/ui/Input';
+import { Button } from '../../src/components/ui/Button';
 import { Spacing, Radii, Typography } from '../../src/theme';
 
 const WALLET_TYPES = [

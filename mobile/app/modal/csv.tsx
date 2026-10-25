@@ -23,14 +23,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
-import { Button } from '../../src/components/Button';
-import { api } from '../../src/services/api';
+import { Button } from '../../src/components/ui/Button';
+import { api } from '../../src/api/api';
 import { Wallet, TransactionCreateInput } from '../../src/types';
 import { formatCurrency } from '../../src/utils/formatCurrency';
 import { getTodayIso } from '../../src/utils/dateUtils';
 import { INCOME_CATEGORIES } from '../../src/constants/categories';
-import { DatePickerModal } from '../../src/components/DatePickerModal';
-import { CustomAlertDialog, AlertType } from '../../src/components/CustomAlertDialog';
+import { DatePickerModal } from '../../src/components/modals/DatePickerModal';
+import { CustomAlertDialog, AlertType } from '../../src/components/modals/CustomAlertDialog';
 import { Spacing, Radii, Typography } from '../../src/theme';
 
 interface ParsedImportRow {

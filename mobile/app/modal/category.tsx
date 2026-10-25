@@ -17,9 +17,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
-import { Input } from '../../src/components/Input';
-import { Button } from '../../src/components/Button';
-import { api } from '../../src/services/api';
+import { Input } from '../../src/components/ui/Input';
+import { Button } from '../../src/components/ui/Button';
+import { api } from '../../src/api/api';
 import { Category } from '../../src/types';
 import { Spacing, Radii, Typography } from '../../src/theme';
 

@@ -1,6 +1,17 @@
 from fastapi import APIRouter
-from app.routers import auth, transactions, wallets, expenses, income, insights, settings, categories
-from app.api.v1.endpoints import csv_tools, health, analytics
+from app.api.v1.endpoints import (
+    auth,
+    transactions,
+    wallets,
+    expenses,
+    income,
+    insights,
+    settings,
+    categories,
+    csv,
+    health,
+    analytics,
+)
 
 api_router = APIRouter()
 
@@ -13,5 +24,5 @@ api_router.include_router(expenses.router, prefix="", tags=["Expenses"])
 api_router.include_router(income.router, prefix="", tags=["Income"])
 api_router.include_router(insights.router, prefix="", tags=["Insights & Budgets"])
 api_router.include_router(analytics.router, prefix="", tags=["Analytics"])
-api_router.include_router(csv_tools.router, prefix="", tags=["CSV Tools"])
+api_router.include_router(csv.router, prefix="", tags=["CSV Tools"])
 api_router.include_router(health.router, prefix="", tags=["Health"])

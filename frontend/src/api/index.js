@@ -1,5 +1,0 @@
-export { authApi } from './authApi'
-export { transactionApi } from './transactionApi'
-export { walletApi } from './walletApi'
-export { expenseApi } from './expenseApi'
-export { incomeApi } from './incomeApi'

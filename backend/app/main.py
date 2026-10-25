@@ -13,7 +13,7 @@ app = FastAPI(
     version="1.1.0"
 )
 
-# CORS middleware to allow Vite frontend and credentials
+# CORS middleware for mobile client communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Routers under /api/v1, /api, and root for full frontend and API compatibility
+# Mount Routers under /api/v1, /api, and root for mobile API client compatibility
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(api_router, prefix="/api")
 app.include_router(api_router)

@@ -19,8 +19,8 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
-import { Input } from '../../src/components/Input';
-import { Button } from '../../src/components/Button';
+import { Input } from '../../src/components/ui/Input';
+import { Button } from '../../src/components/ui/Button';
 import { getTodayIso } from '../../src/utils/dateUtils';
 import {
   EXPENSE_CATEGORIES,
@@ -29,7 +29,7 @@ import {
 } from '../../src/constants/categories';
 import { TransactionType } from '../../src/types';
 import { Spacing, Radii, Typography } from '../../src/theme';
-import { DatePickerModal } from '../../src/components/DatePickerModal';
+import { DatePickerModal } from '../../src/components/modals/DatePickerModal';
 
 export default function TransactionModal() {
   const router = useRouter();

@@ -18,9 +18,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
-import { Input } from '../src/components/Input';
-import { Button } from '../src/components/Button';
-import { api } from '../src/services/api';
+import { Input } from '../src/components/ui/Input';
+import { Button } from '../src/components/ui/Button';
+import { api } from '../src/api/api';
 import { Spacing, Radii, Typography } from '../src/theme';
 
 export default function LoginScreen() {

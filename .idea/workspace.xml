@@ -5,8 +5,170 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4aaa50fb-7a91-4fb8-9539-c4daf9d3c7d8" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/mobile/app/_layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/app/_layout.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/mobile/src/components/CustomAlertDialog.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/mobile/src/components/CustomAlertDialog.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/deviceHardwareInput.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/deviceHardwareInput.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/PROJECT_STRUCTURE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/api/v1/endpoints/csv_tools.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/crud.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/database.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/deps.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/auth.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/categories.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/expenses.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/income.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/insights.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/transactions.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/routers/wallets.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/app/security.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/pytest.ini" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/requirements-dev.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/conftest.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_analytics.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_auth.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_budgets.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_currency_and_categories.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_transactions.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/tests/test_wallets.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/docker-compose.prod.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/nginx/conf.d/default.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/deploy/nginx/nginx.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker-compose.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/Dockerfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/eslint.config.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/nginx.conf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/favicon.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/App.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/apiClient.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/authApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/budgetApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/categoryApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/csvApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/dashboardApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/endpoints.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/expenseApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/incomeApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/settingsApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/transactionApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/walletApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/assets/logo.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/AddCurrencyModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/BudgetRing.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/CashFlowOverview.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ConfirmDialog.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/CsvImportModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ExpenseFilters.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ExpenseForm.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ExpenseList.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/FilterDrawer.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/Header.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/IncomeForm.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/IncomeList.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/Sidebar.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/TransactionForm.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/TransactionTable.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/auth/LogoutConfirmModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/budget/BudgetConfirmModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/categories/CategoriesTab.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/csv/CsvImportModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/filters/FilterDrawer.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/AppLayout.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Topbar.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/transactions/DeleteConfirmModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/transactions/ExpenseModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/AppLogo/AppLogo.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/CustomDatePicker/CustomDatePicker.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/CustomDropdown/CustomDropdown.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/ui/Toast/Toast.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/wallets/WalletBar.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/wallets/components/CreateWalletModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/wallets/components/DeleteWalletModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/wallets/components/EditWalletModal.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/wallets/components/WalletCard.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/constants/categories.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/AppContext.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useAnalyticsSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useAuthSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useBudgetSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useCsvSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useExpensesSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useFilterSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useSettingsSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useThemeSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useToastSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useTransactionForm.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/modules/useWalletsSlice.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/hooks/useExpenses.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/layouts/MainLayout.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/main.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Dashboard.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Expenses.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Income.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Insights.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Login.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Register.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Settings.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Transactions.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/Wallets.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/AppRoutes.jsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/authApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/categoryApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/expenseApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/incomeApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/settingsApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/transactionApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/services/walletApi.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components/AddCurrencyModal.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components/CashFlowOverview.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components/CategoriesTab.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components/DeleteConfirmModal.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/components/WalletBar.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/global/App.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/global/index.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/pages/Dashboard.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/styles/pages/Wallets.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/csvExporter.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/csvParser.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/currency.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/dateUtils.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/dates.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/formatCurrency.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/formatters.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/utils/initialData.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/vite.config.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/AGENTS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/expo.icon/Assets/expo-symbol 2.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/expo.icon/Assets/grid.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/expo.icon/icon.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/expo-badge-white.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/expo-badge.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/expo-logo.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/logo-glow.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/react-logo.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/react-logo@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/react-logo@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/explore.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/explore@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/explore@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/home.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/home@2x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tabIcons/home@3x.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/assets/images/tutorial-web.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mobile/scripts/reset-project.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/reference_prototype.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/start.bat" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -28,20 +190,20 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;CidrDebugProfileConversion&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/expense-tracker - Copy&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CidrDebugProfileConversion": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "restructure",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/expense-tracker - Copy"
   }
-}</component>
+}]]></component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="4aaa50fb-7a91-4fb8-9539-c4daf9d3c7d8" name="Changes" comment="" />

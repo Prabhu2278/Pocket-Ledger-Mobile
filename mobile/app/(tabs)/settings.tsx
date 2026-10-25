@@ -21,8 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
-import { Header } from '../../src/components/Header';
-import { AddCurrencyModal } from '../../src/components/AddCurrencyModal';
+import { Header } from '../../src/components/ui/Header';
+import { AddCurrencyModal } from '../../src/components/modals/AddCurrencyModal';
 import {
   DEFAULT_CURRENCIES,
   POPULAR_CURRENCIES,
@@ -31,7 +31,7 @@ import {
   removeCustomCurrency,
   CurrencyConfig,
 } from '../../src/utils/formatCurrency';
-import { api } from '../../src/services/api';
+import { api } from '../../src/api/api';
 import { Spacing, Radii, Typography } from '../../src/theme';
 
 const DARK_THEMES = [

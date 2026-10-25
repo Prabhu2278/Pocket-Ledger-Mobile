@@ -1,18 +1,19 @@
 # Pocket Ledger — System Architecture & Design Documentation
 
-## 1. Architectural Philosophy
-Pocket Ledger is architected with a decoupled, modular design emphasizing predictable data flow, separation of concerns, and robust real-world production readiness:
+## 1. Architectural Overview
 
-```
+Pocket Ledger is a mobile-first, full-stack personal finance application structured with a decoupled, domain-driven architecture:
+
+```text
 ┌────────────────────────────────────────────────────────┐
-│                   React 18 Frontend                    │
-│   (Vite SPA, CSS Glassmorphic Tokens, AppLayout Shell) │
+│               React Native Mobile App                  │
+│       (Expo SDK, Expo Router, TypeScript UI)           │
 └───────────────────────────┬────────────────────────────┘
                             │ REST / JSON (HTTP)
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                   FastAPI Backend                      │
-│     (Master API Router: /api/v1, /api, Root Mounts)    │
+│     (App Entry: app.main:app, Router: /api/v1)         │
 └─────────────┬───────────────────────────┬──────────────┘
               │                           │
               ▼                           ▼
@@ -22,6 +23,12 @@ Pocket Ledger is architected with a decoupled, modular design emphasizing predic
 └─────────────┬─────────────┘ └───────────┬───────────────┘
               │                           │
               └─────────────┬─────────────┘
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                  Repositories Layer                    │
+│           (Database Queries, CRUD Operations)          │
+└───────────────────────────┬────────────────────────────┘
+                            │
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                   SQLAlchemy 2.0 ORM                   │
@@ -39,70 +46,69 @@ Pocket Ledger is architected with a decoupled, modular design emphasizing predic
 
 ## 2. Backend Architecture (`backend/app/`)
 
-### A. Canonical Entrypoint
-- `backend/app/main.py`: Official FastAPI application factory configuring CORS middleware, lifespan events, database table initialization, and mounting `api_router`.
-- `backend/main.py`: Minimal root wrapper allowing `uvicorn main:app --reload` from the root or batch scripts.
+### A. Application Entrypoint
+- `backend/app/main.py`: Official FastAPI application factory configuring CORS middleware for mobile network communication, database table initialization, and mounting `api_router`.
+- Run locally with: `uvicorn app.main:app --reload --host 0.0.0.0 --port 9000`
 
 ### B. Core Layer (`backend/app/core/`)
-- [config.py](file:///d:/expense-tracker/backend/app/core/config.py): Environment variable resolution (`DATABASE_URL`, `SECRET_KEY`, `PORT`).
-- [database.py](file:///d:/expense-tracker/backend/app/core/database.py): Engine initialization with connection pooling (`pool_pre_ping=True`), automatic SQLite dev fallback, `SessionLocal` factory, and `get_db()` dependency generator.
-- [security.py](file:///d:/expense-tracker/backend/app/core/security.py): Bcrypt salt hashing, timing-attack-safe password verification, and JWT access token encoding/decoding.
+- `config.py`: Environment variable loading (`DATABASE_URL`, `CORS_ORIGINS`).
+- `database.py`: Database engine with connection pooling (`pool_pre_ping=True`), automatic SQLite dev fallback, `SessionLocal` factory, and `get_db()` dependency.
+- `security.py`: Bcrypt password hashing, verification, and PyJWT token generation/validation.
+- `exceptions.py` & `logging.py`: Structured logging and global HTTP exception handlers.
 
-### C. Models Layer (`backend/app/models/`)
-Modular entity definitions using SQLAlchemy Declarative Base:
-- `user.py`: User accounts, hashed passwords, currency preference.
-- `wallet.py`: Wallets and accounts (Bank, Digital/UPI, Cash, Credit Card) with foreign key relationships.
-- `expense.py`: Unified transactions ledger (`EXPENSE`, `INCOME`, `TRANSFER`) with source/target wallet foreign keys.
-- `income.py`: Dedicated income streams.
-- `budget.py`: Monthly category and global budget targets.
+### C. API & Endpoints (`backend/app/api/`)
+- `api/deps.py`: Dependency injection for DB sessions (`get_db`) and JWT authentication (`get_current_user`, `get_optional_current_user`).
+- `api/v1/router.py`: Master router aggregating all domain endpoints.
+- `api/v1/endpoints/`:
+  - `auth.py`: User registration, login, profile, password change.
+  - `wallets.py`: Multi-wallet management and balance adjustments.
+  - `transactions.py`: Unified transactions ledger (`expense`, `income`, `transfer`).
+  - `expenses.py` & `income.py`: Dedicated expense and income CRUD.
+  - `categories.py`: Category creation, listing, color/icon updates, deletion.
+  - `settings.py`: Currency and theme settings.
+  - `insights.py`: Cash flow summary, monthly budget targets.
+  - `analytics.py`: Historical analytics.
+  - `csv.py`: CSV import and statement parsing endpoints.
+  - `health.py`: Healthcheck probe.
 
-### D. Schemas Layer (`backend/app/schemas/`)
-Strict Pydantic validation contracts ensuring type safety between clients and database records:
-- `auth.py`: Registration, login, profile updates, and JWT token models.
-- `wallet.py`: Input/output contracts for wallet balances and configurations.
-- `expense.py`: Validated transaction models with amount and category normalizers.
-- `budget.py`: Budget target requests and responses.
-- `analytics.py`: Aggregated cash flow, budget utilization, and category breakdown responses.
+### D. Repositories Layer (`backend/app/repositories/`)
+- Encapsulates database queries and persistence logic, decoupling business services and routers from direct SQLAlchemy query calls.
 
-### E. Routers Layer (`backend/app/routers/` & `backend/app/api/v1/`)
-- Master aggregator: `backend/app/api/v1/router.py` groups all endpoints under `/api/v1` and `/api`.
-- Domain routers: `auth.py`, `transactions.py`, `wallets.py`, `expenses.py`, `income.py`, `insights.py`, `csv_tools.py`, `health.py`.
+### E. Models Layer (`backend/app/models/`)
+Modular SQLAlchemy ORM definitions:
+- `user.py`: User account credentials and metadata.
+- `wallet.py`: Wallets and bank accounts with real-time balance calculations.
+- `expense.py`: Transactions records with wallet relations.
+- `income.py`: Income records.
+- `budget.py`: Monthly budget allocations.
+- `category.py`: User and default categories.
+- `setting.py` & `currency_setting.py`: User preferences.
 
-### F. Services Layer (`backend/app/services/`)
-Encapsulates pure business logic independent of transport:
-- `wallet_service.py`: Computes live wallet balances dynamically from transactions, auto-assigns orphaned entries, and manages wallet transfers.
-- `expense_service.py`: Enforces transaction integrity.
-- `budget_service.py`: Calculates budget utilization percentages and daily spend hints.
-- `csv_service.py`: Parses bank statement uploads and bulk imports transactions.
-
-### G. Automated Test Suite (`backend/tests/`)
-Isolated test suite executed via `pytest`:
-- Uses in-memory SQLite (`sqlite:///:memory:`) so production databases are never touched.
-- Covers user registration, authentication, wallet CRUD, real-time balance calculations, budget updates, and financial analytics.
+### F. Schemas Layer (`backend/app/schemas/`)
+Strict Pydantic models for request validation and response serialization.
 
 ---
 
-## 3. Frontend Architecture (`frontend/src/`)
+## 3. Mobile Architecture (`mobile/`)
 
-### A. Application Shell & Layout (`src/components/layout/`)
-- [AppLayout.jsx](file:///d:/expense-tracker/frontend/src/components/layout/AppLayout.jsx): The master responsive shell containing the sidebar, header, global transaction modal, filter drawer, and toast notification system.
-- `Sidebar.jsx`: Accessible navigation menu with Month Navigator, Budget Meter, and Quick Logout.
-- `Topbar.jsx` / `Header.jsx`: Header with real-time Search, Month Quick-Switch, and Action Buttons (+ Add Transaction, Import CSV).
+### A. Navigation & Routing (`mobile/app/`)
+- File-based navigation via Expo Router.
+- `_layout.tsx`: Root layout configuring `ThemeProvider`, `AuthProvider`, `AppProvider`, and `AlertProvider`.
+- `(tabs)/`: Tab-based navigation for Dashboard, Transactions, Wallets, and Settings.
+- `modal/`: Full-screen modal sheets for transaction entry, wallet creation, category management, and CSV statement import.
 
-### B. Canonical Pages (`src/pages/`)
-- [Dashboard.jsx](file:///d:/expense-tracker/frontend/src/pages/Dashboard.jsx) & [Insights.jsx](file:///d:/expense-tracker/frontend/src/pages/Insights.jsx): Financial KPIs (Total Income, Total Expense, Net Cash Flow, Savings Rate), Budget Ring, 7-Day Spending Chart, and Category Breakdown.
-- [Transactions.jsx](file:///d:/expense-tracker/frontend/src/pages/Transactions.jsx): High-performance transaction ledger with live search, advanced drawer filtering, multi-column sorting, pagination (10/20/50/100), and CSV export.
-- [Wallets.jsx](file:///d:/expense-tracker/frontend/src/pages/Wallets.jsx): Multi-account management (Bank, Cash, UPI, Cards) with live calculated balances and creation/edit modals.
-- [Settings.jsx](file:///d:/expense-tracker/frontend/src/pages/Settings.jsx): User profile, currency selector, monthly budget target, theme switcher, and secure password updates.
-- [Login.jsx](file:///d:/expense-tracker/frontend/src/pages/Login.jsx) & [Register.jsx](file:///d:/expense-tracker/frontend/src/pages/Register.jsx): Fast, clean authentication views.
+### B. Grouped Components (`mobile/src/components/`)
+- `ui/`: Core elements (`Button`, `Input`, `Header`, `EmptyState`, `FilterChips`, `LoadingView`).
+- `cards/`: Financial display cards (`WalletCard`, `TransactionItem`, `StatCard`, `CashFlowOverview`).
+- `modals/`: User dialogs (`CustomAlertDialog`, `FilterDrawerModal`, `AddCurrencyModal`, `DatePickerModal`).
+- `charts/`: Visual graphs (`CashFlowChart`).
 
-### C. API Layer (`src/api/`)
-Centralized HTTP client functions with automatic authorization headers and error propagation:
-- `authApi.js`: Login, register, profile, and JWT storage.
-- `transactionApi.js`: Unified transaction CRUD, bulk CSV upload, and export.
-- `walletApi.js`: Accounts and balances API.
-- `expenseApi.js` & `incomeApi.js`: Domain-specific endpoints.
+### C. Networking & Storage (`mobile/src/api/`)
+- `api.ts`: Centralized fetch client with automatic JWT token attachment, IP resolution for LAN/emulator, and session handling.
+- `storage.ts`: Encrypted storage via Expo SecureStore for auth tokens, with AsyncStorage for local preferences.
 
-### D. Design System & CSS
-- [index.css](file:///d:/expense-tracker/frontend/src/index.css): Centralized design tokens (colors, radii, shadows, fonts, glassmorphism).
-- [App.css](file:///d:/expense-tracker/frontend/src/App.css): Responsive grid layouts, table styling, button states, and form elements.
+### D. Global State (`mobile/src/context/`)
+- `AuthContext`: Authentication session and profile state.
+- `AppContext`: Global financial data (wallets, transactions, active filters).
+- `ThemeContext`: Dark and light theme modes.
+- `AlertContext`: Global interception of React Native `Alert.alert` into custom styled theme dialogs.
