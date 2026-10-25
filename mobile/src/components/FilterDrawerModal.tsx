@@ -67,7 +67,6 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
     { id: 'all', label: 'All Types' },
     { id: 'expense', label: 'Expenses' },
     { id: 'income', label: 'Income' },
-    { id: 'transfer', label: 'Transfers' },
   ];
 
   // Filtered categories in dropdown search

@@ -11,8 +11,9 @@ import { useAuth } from '../context/AuthContext';
 import { formatMonthLabel } from '../utils/dateUtils';
 import { Spacing, Radii, Typography } from '../theme';
 
-import { Alert, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { CustomAlertDialog } from './CustomAlertDialog';
 
 export interface HeaderProps {
   title?: string;
@@ -33,36 +34,24 @@ export const Header: React.FC<HeaderProps> = ({
   const { theme } = useTheme();
   const { monthState, goToPreviousMonth, goToNextMonth, isRefreshing, refreshAll } = useApp();
   const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
+  const [logoutLoading, setLogoutLoading] = React.useState(false);
 
   const handleAvatarPress = () => {
-    const doLogout = async () => {
-      try {
-        await logout();
-        router.replace('/login');
-      } catch (err: any) {
-        Alert.alert('Error', err?.message || 'Failed to logout');
-      }
-    };
+    setShowLogoutConfirm(true);
+  };
 
-    if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm(`Signed in as ${user?.email || 'User'}\n\nDo you want to log out?`)) {
-        doLogout();
-      }
-      return;
+  const doLogout = async () => {
+    try {
+      setLogoutLoading(true);
+      await logout();
+      setShowLogoutConfirm(false);
+      router.replace('/login');
+    } catch (err: any) {
+      setShowLogoutConfirm(false);
+    } finally {
+      setLogoutLoading(false);
     }
-
-    Alert.alert(
-      user?.full_name || 'My Account',
-      `${user?.email || 'Active Session'}\n\nWould you like to sign out?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: doLogout,
-        },
-      ]
-    );
   };
 
   const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'P';
@@ -157,6 +146,27 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         </View>
       ) : null}
+
+      {/* Styled Sign Out Confirmation Dialog */}
+      <CustomAlertDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        type="danger"
+        icon="log-out-outline"
+        title={user?.full_name || 'My Account'}
+        subtitle={user?.email || 'Active Session'}
+        message="Would you like to sign out of Pocket Ledger?"
+        secondaryButton={{
+          text: 'Cancel',
+          onPress: () => setShowLogoutConfirm(false),
+        }}
+        primaryButton={{
+          text: 'Sign Out',
+          variant: 'danger',
+          loading: logoutLoading,
+          onPress: doLogout,
+        }}
+      />
     </View>
   );
 };

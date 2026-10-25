@@ -30,6 +30,7 @@ import { formatCurrency } from '../../src/utils/formatCurrency';
 import { getTodayIso } from '../../src/utils/dateUtils';
 import { INCOME_CATEGORIES } from '../../src/constants/categories';
 import { DatePickerModal } from '../../src/components/DatePickerModal';
+import { CustomAlertDialog, AlertType } from '../../src/components/CustomAlertDialog';
 import { Spacing, Radii, Typography } from '../../src/theme';
 
 interface ParsedImportRow {
@@ -67,6 +68,25 @@ interface WalletIssue {
   shortageAmount: number;
 }
 
+interface AlertDialogState {
+  isOpen: boolean;
+  type?: AlertType;
+  icon?: keyof typeof Ionicons.glyphMap;
+  title: string;
+  subtitle?: string;
+  message: string;
+  primaryButton?: {
+    text: string;
+    onPress: () => void | Promise<void>;
+    variant?: 'primary' | 'danger' | 'success' | 'secondary';
+    loading?: boolean;
+  };
+  secondaryButton?: {
+    text: string;
+    onPress: () => void;
+  };
+}
+
 export default function CsvImportModal() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -81,6 +101,23 @@ export default function CsvImportModal() {
   const [targetWalletId, setTargetWalletId] = useState<number | null>(
     wallets.length > 0 ? wallets[0].id : null
   );
+
+  // -------------------------------------------------------------------------
+  // Custom Alert Dialog State (Replaces native unstyled Alert.alert)
+  // -------------------------------------------------------------------------
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (config: Omit<AlertDialogState, 'isOpen'>) => {
+    setAlertDialog({ ...config, isOpen: true });
+  };
+
+  const closeAlert = () => {
+    setAlertDialog((prev) => ({ ...prev, isOpen: false }));
+  };
 
   // -------------------------------------------------------------------------
   // Income Form Popup State (pops up when imported row has low funds or needs income)
@@ -587,80 +624,110 @@ export default function CsvImportModal() {
   const handleOpenNewWalletFlow = (issue: WalletIssue) => {
     if (issue.type === 'NEW_WALLET_INCOME') {
       // Income-only new wallet: Prompt user if they want to create the new wallet
-      Alert.alert(
-        'New Wallet Detected',
-        `The imported data has a wallet named "${issue.walletName}" that does not exist in the app.\n\nDo you want to create a new wallet for that?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Yes, Create Wallet',
-            onPress: async () => {
-              try {
-                setLoading(true);
-                await createWallet({
-                  name: issue.walletName,
-                  wallet_type: 'BANK',
-                  initial_balance: 0,
-                  color: '#10b981',
-                });
-                await refreshAll();
-                Alert.alert(
-                  'Wallet Created',
-                  `Wallet "${issue.walletName}" has been created in your app and database! The incoming transaction (+${formatCurrency(issue.totalIncomeInBatch, currency)}) will now be deposited directly into it.`
-                );
-              } catch (err: any) {
-                Alert.alert('Error', err?.message || 'Failed to create new wallet');
-              } finally {
-                setLoading(false);
-              }
-            },
+      showAlert({
+        type: 'confirm',
+        icon: 'wallet-outline',
+        title: 'New Wallet Detected',
+        subtitle: issue.walletName,
+        message: `The imported data has a wallet named "${issue.walletName}" that does not exist in the app.\n\nDo you want to create a new wallet for that?`,
+        secondaryButton: {
+          text: 'Cancel',
+          onPress: closeAlert,
+        },
+        primaryButton: {
+          text: 'Yes, Create Wallet',
+          variant: 'primary',
+          onPress: async () => {
+            closeAlert();
+            try {
+              setLoading(true);
+              await createWallet({
+                name: issue.walletName,
+                wallet_type: 'BANK',
+                initial_balance: 0,
+                color: '#10b981',
+              });
+              await refreshAll();
+              showAlert({
+                type: 'success',
+                icon: 'checkmark-circle',
+                title: 'Wallet Created',
+                subtitle: issue.walletName,
+                message: `Wallet "${issue.walletName}" has been created in your app and database! The incoming transaction (+${formatCurrency(issue.totalIncomeInBatch, currency)}) will now be deposited directly into it.`,
+                primaryButton: {
+                  text: 'OK',
+                  variant: 'primary',
+                  onPress: closeAlert,
+                },
+              });
+            } catch (err: any) {
+              showAlert({
+                type: 'danger',
+                title: 'Error',
+                message: err?.message || 'Failed to create new wallet',
+                primaryButton: { text: 'OK', onPress: closeAlert },
+              });
+            } finally {
+              setLoading(false);
+            }
           },
-        ]
-      );
+        },
+      });
     } else {
       // New Wallet with Expense: Requires 2 Requirements:
       // Requirement 1: Prompt user to create new wallet (initial balance 0 cash).
       // Requirement 2: Detect 0 cash, alert low funds ("Did you forget to add the income?"),
       // and pop up the Income Form to deposit funds before recording the expense!
-      Alert.alert(
-        'New Wallet Detected (Requirement 1 of 2)',
-        `This is a new wallet "${issue.walletName}" that doesn't exist in the app wallets.\n\nDo you want to create a new wallet for this record?\n\nNote: Newly created wallets start with ₹0 cash, so an income will be required to cover the statement expenses.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Yes, Create Wallet',
-            onPress: async () => {
-              try {
-                setLoading(true);
-                const newW = await createWallet({
-                  name: issue.walletName,
-                  wallet_type: 'BANK',
-                  initial_balance: 0,
-                  color: '#10b981',
-                });
-                await refreshAll();
+      showAlert({
+        type: 'warning',
+        icon: 'wallet-outline',
+        title: 'New Wallet Detected',
+        subtitle: `Requirement 1 of 2: ${issue.walletName}`,
+        message: `This is a new wallet "${issue.walletName}" that doesn't exist in the app wallets.\n\nDo you want to create a new wallet for this record?\n\nNote: Newly created wallets start with 0 cash, so an income will be required to cover the statement expenses.`,
+        secondaryButton: {
+          text: 'Cancel',
+          onPress: closeAlert,
+        },
+        primaryButton: {
+          text: 'Yes, Create Wallet',
+          variant: 'primary',
+          onPress: async () => {
+            closeAlert();
+            try {
+              setLoading(true);
+              const newW = await createWallet({
+                name: issue.walletName,
+                wallet_type: 'BANK',
+                initial_balance: 0,
+                color: '#10b981',
+              });
+              await refreshAll();
 
-                // Requirement 2: Immediately pop up the Income Form with "Did you forget to add the income?"
-                const minNeeded = issue.shortageAmount > 0 ? issue.shortageAmount : issue.totalExpenseInBatch;
-                setIncomeFormWallet(newW);
-                setIncomeFormWalletName(issue.walletName);
-                setIncomeMinRequired(minNeeded);
-                setIncomeAmount(String(Math.ceil(minNeeded)));
-                setIncomeCategory('Salary');
-                setIncomeNote(`Opening Income Deposit for ${issue.walletName}`);
-                setIncomeDate(getTodayIso());
-                setIncomeFormReason('NEW_WALLET');
-                setIncomeFormError(null);
-                setShowIncomeForm(true);
-              } catch (err: any) {
-                Alert.alert('Error', err?.message || 'Failed to create new wallet');
-              } finally {
-                setLoading(false);
-              }
-            },
+              // Requirement 2: Immediately pop up the Income Form with "Did you forget to add the income?"
+              const minNeeded = issue.shortageAmount > 0 ? issue.shortageAmount : issue.totalExpenseInBatch;
+              setIncomeFormWallet(newW);
+              setIncomeFormWalletName(issue.walletName);
+              setIncomeMinRequired(minNeeded);
+              setIncomeAmount(String(Math.ceil(minNeeded)));
+              setIncomeCategory('Salary');
+              setIncomeNote(`Opening Income Deposit for ${issue.walletName}`);
+              setIncomeDate(getTodayIso());
+              setIncomeFormReason('NEW_WALLET');
+              setIncomeFormError(null);
+              setShowIncomeForm(true);
+            } catch (err: any) {
+              showAlert({
+                type: 'danger',
+                title: 'Error',
+                message: err?.message || 'Failed to create new wallet',
+                primaryButton: { text: 'OK', onPress: closeAlert },
+              });
+            } finally {
+              setLoading(false);
+            }
           },
-        ]
-      );
+        },
+      });
     }
   };
 
@@ -711,10 +778,18 @@ export default function CsvImportModal() {
       await refreshAll();
 
       setShowIncomeForm(false);
-      Alert.alert(
-        'Income Transaction Added!',
-        `Successfully recorded +${formatCurrency(numAmt, currency)} to "${targetW.name}" in your transactions! The wallet now has sufficient funds for your statement expenses.`
-      );
+      showAlert({
+        type: 'success',
+        icon: 'checkmark-circle',
+        title: 'Income Transaction Added!',
+        subtitle: `Deposit to ${targetW.name}`,
+        message: `Successfully recorded +${formatCurrency(numAmt, currency)} to "${targetW.name}" in your transactions! The wallet now has sufficient funds for your statement expenses.`,
+        primaryButton: {
+          text: 'Continue Import',
+          variant: 'success',
+          onPress: closeAlert,
+        },
+      });
     } catch (err: any) {
       setIncomeFormError(err?.message || 'Failed to record income transaction.');
     } finally {
@@ -730,19 +805,25 @@ export default function CsvImportModal() {
     if (newWalletRows.length > 0) {
       const firstNew = newWalletRows[0];
       const issue = walletIssues.find((i) => i.walletName === firstNew.rawWalletName) || walletIssues[0];
-      Alert.alert(
-        'Action Required: New Wallet',
-        `The imported data has a wallet named "${firstNew.rawWalletName || firstNew.targetWalletName}" that doesn't exist in your app wallets.\n\nDo you want to create a new wallet for this record first?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Create New Wallet',
-            onPress: () => {
-              if (issue) handleOpenNewWalletFlow(issue);
-            },
+      showAlert({
+        type: 'warning',
+        icon: 'wallet-outline',
+        title: 'Action Required: New Wallet',
+        subtitle: firstNew.rawWalletName || firstNew.targetWalletName,
+        message: `The imported data has a wallet named "${firstNew.rawWalletName || firstNew.targetWalletName}" that doesn't exist in your app wallets.\n\nDo you want to create a new wallet for this record first?`,
+        secondaryButton: {
+          text: 'Cancel',
+          onPress: closeAlert,
+        },
+        primaryButton: {
+          text: 'Create New Wallet',
+          variant: 'primary',
+          onPress: () => {
+            closeAlert();
+            if (issue) handleOpenNewWalletFlow(issue);
           },
-        ]
-      );
+        },
+      });
       return;
     }
 
@@ -750,51 +831,21 @@ export default function CsvImportModal() {
     if (recordableRows.length === 0) {
       if (insufficientFundRows.length > 0) {
         const first = insufficientFundRows[0];
-        Alert.alert(
-          'Low Funds Alert',
-          `Cannot record transaction(s) because wallet "${first.targetWalletName}" only has ${formatCurrency(first.availableBalanceBefore, currency)} available (needs ${formatCurrency(first.amount, currency)}).\n\nDid you forget to add the income? Please add income first so your balance won't drop below 0.`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Add Income Now',
-              onPress: () => {
-                const issue = walletIssues.find((i) => i.walletName === first.targetWalletName);
-                if (issue) {
-                  handleOpenIncomeFormForExistingWallet(issue);
-                } else {
-                  const targetW = wallets.find((w) => w.id === first.targetWalletId) || wallets[0];
-                  setIncomeFormWallet(targetW || null);
-                  setIncomeFormWalletName(first.targetWalletName);
-                  setIncomeMinRequired(first.shortage);
-                  setIncomeAmount(String(Math.ceil(first.shortage)));
-                  setIncomeCategory('Salary');
-                  setIncomeNote(`Deposit to cover ${first.targetWalletName} expenses`);
-                  setIncomeDate(getTodayIso());
-                  setIncomeFormReason('LOW_FUNDS');
-                  setIncomeFormError(null);
-                  setShowIncomeForm(true);
-                }
-              },
-            },
-          ]
-        );
-      } else {
-        Alert.alert('Cannot Import', 'No valid transactions found to record.');
-      }
-      return;
-    }
-
-    // Check 3: If some rows will be skipped due to insufficient funds, prompt user
-    if (insufficientFundRows.length > 0) {
-      Alert.alert(
-        'Import Valid Transactions?',
-        `${recordableRows.length} of ${evaluatedRows.length} transactions will be recorded.\n\n${insufficientFundRows.length} transaction(s) cannot be recorded because wallet funds are insufficient (preventing your wallet balance from going under 0).\n\nDid you forget to add the income? You can add income now or proceed to import the ${recordableRows.length} valid transaction(s).`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Add Income First',
+        showAlert({
+          type: 'danger',
+          icon: 'alert-circle',
+          title: 'Low Funds Alert',
+          subtitle: `Wallet: ${first.targetWalletName}`,
+          message: `Cannot record transaction(s) because wallet "${first.targetWalletName}" only has ${formatCurrency(first.availableBalanceBefore, currency)} available (needs ${formatCurrency(first.amount, currency)}).\n\nDid you forget to add the income? Please add income first so your balance won't drop below 0.`,
+          secondaryButton: {
+            text: 'Cancel',
+            onPress: closeAlert,
+          },
+          primaryButton: {
+            text: 'Add Income Now',
+            variant: 'success',
             onPress: () => {
-              const first = insufficientFundRows[0];
+              closeAlert();
               const issue = walletIssues.find((i) => i.walletName === first.targetWalletName);
               if (issue) {
                 handleOpenIncomeFormForExistingWallet(issue);
@@ -813,12 +864,57 @@ export default function CsvImportModal() {
               }
             },
           },
-          {
-            text: `Import ${recordableRows.length} Transactions`,
-            onPress: () => executeBulkImport(recordableRows),
+        });
+      } else {
+        showAlert({
+          type: 'warning',
+          title: 'Cannot Import',
+          message: 'No valid transactions found to record.',
+          primaryButton: { text: 'OK', onPress: closeAlert },
+        });
+      }
+      return;
+    }
+
+    // Check 3: If some rows will be skipped due to insufficient funds, prompt user
+    if (insufficientFundRows.length > 0) {
+      showAlert({
+        type: 'confirm',
+        icon: 'document-text-outline',
+        title: 'Import Valid Transactions?',
+        message: `${recordableRows.length} of ${evaluatedRows.length} transactions will be recorded.\n\n${insufficientFundRows.length} transaction(s) cannot be recorded because wallet funds are insufficient (preventing your wallet balance from going under 0).\n\nDid you forget to add the income? You can add income now or proceed to import the ${recordableRows.length} valid transaction(s).`,
+        secondaryButton: {
+          text: 'Add Income First',
+          onPress: () => {
+            closeAlert();
+            const first = insufficientFundRows[0];
+            const issue = walletIssues.find((i) => i.walletName === first.targetWalletName);
+            if (issue) {
+              handleOpenIncomeFormForExistingWallet(issue);
+            } else {
+              const targetW = wallets.find((w) => w.id === first.targetWalletId) || wallets[0];
+              setIncomeFormWallet(targetW || null);
+              setIncomeFormWalletName(first.targetWalletName);
+              setIncomeMinRequired(first.shortage);
+              setIncomeAmount(String(Math.ceil(first.shortage)));
+              setIncomeCategory('Salary');
+              setIncomeNote(`Deposit to cover ${first.targetWalletName} expenses`);
+              setIncomeDate(getTodayIso());
+              setIncomeFormReason('LOW_FUNDS');
+              setIncomeFormError(null);
+              setShowIncomeForm(true);
+            }
           },
-        ]
-      );
+        },
+        primaryButton: {
+          text: `Import ${recordableRows.length} Transactions`,
+          variant: 'primary',
+          onPress: () => {
+            closeAlert();
+            executeBulkImport(recordableRows);
+          },
+        },
+      });
       return;
     }
 
@@ -848,12 +944,20 @@ export default function CsvImportModal() {
         msg += `\n\n${insufficientFundRows.length} transaction(s) were skipped to prevent your wallet from going under 0.`;
       }
 
-      Alert.alert('Import Successful', msg, [
-        {
-          text: 'OK',
-          onPress: () => router.back(),
+      showAlert({
+        type: 'success',
+        icon: 'checkmark-done-circle',
+        title: 'Import Successful',
+        message: msg,
+        primaryButton: {
+          text: 'View Ledger',
+          variant: 'primary',
+          onPress: () => {
+            closeAlert();
+            router.back();
+          },
         },
-      ]);
+      });
     } catch (err: any) {
       setError(err?.message || 'Failed to import transactions.');
     } finally {
@@ -1531,6 +1635,19 @@ export default function CsvImportModal() {
           </View>
         </View>
       </Modal>
+
+      {/* Custom Styled Alert Dialog (replaces unstyled native alerts) */}
+      <CustomAlertDialog
+        isOpen={alertDialog.isOpen}
+        onClose={closeAlert}
+        type={alertDialog.type}
+        icon={alertDialog.icon}
+        title={alertDialog.title}
+        subtitle={alertDialog.subtitle}
+        message={alertDialog.message}
+        primaryButton={alertDialog.primaryButton}
+        secondaryButton={alertDialog.secondaryButton}
+      />
     </View>
   );
 }
