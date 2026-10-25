@@ -98,6 +98,15 @@ export function parseCsvText(csvText, defaultWallet = null, availableWallets = [
   const headers = rawHeaders.map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''))
   const results = []
 
+  // Initialize running balances map from availableWallets to track balances sequentially
+  const runningBalances = {}
+  if (Array.isArray(availableWallets)) {
+    availableWallets.forEach((w) => {
+      const bal = Number(w.current_balance ?? w.balance ?? w.initial_balance ?? 0)
+      runningBalances[String(w.id)] = bal
+    })
+  }
+
   for (let i = 1; i < lines.length; i++) {
     const values = splitCsvLine(lines[i])
     if (values.length === 0 || values.every((v) => !v)) continue
@@ -227,7 +236,6 @@ export function parseCsvText(csvText, defaultWallet = null, availableWallets = [
     ).trim()
 
     // 5. Resolve Wallet (MANDATORY)
-    // If the wallet specified in the CSV does not exist in availableWallets, it MUST NOT be silently replaced.
     const rawWallet = (
       row.wallet ||
       row.walletname ||
@@ -261,17 +269,33 @@ export function parseCsvText(csvText, defaultWallet = null, availableWallets = [
       isWalletMissing = true
     }
 
-    // Check expense balance requirement
+    // Sequential running balance calculation per wallet:
+    // If wallet has 1000 and two expenses (700 and 800) arrive:
+    // 1st expense takes 700, leaving 300.
+    // 2nd expense requires 800 > 300, so it fails with Insufficient Wallet Funds!
     let isInsufficientBalance = false
-    if (type === 'expense' && matchedWallet) {
-      const balance = Number(
-        matchedWallet.current_balance ??
-        matchedWallet.balance ??
-        matchedWallet.initial_balance ??
-        0
-      )
-      if (balance < rawAmount) {
-        isInsufficientBalance = true
+    let currentAvailable = 0
+
+    if (matchedWallet) {
+      const wKey = String(matchedWallet.id)
+      if (!(wKey in runningBalances)) {
+        runningBalances[wKey] = Number(
+          matchedWallet.current_balance ??
+          matchedWallet.balance ??
+          matchedWallet.initial_balance ??
+          0
+        )
+      }
+      currentAvailable = runningBalances[wKey]
+
+      if (type === 'income') {
+        runningBalances[wKey] = currentAvailable + rawAmount
+      } else if (type === 'expense' || type === 'transfer') {
+        if (rawAmount > currentAvailable) {
+          isInsufficientBalance = true
+        } else {
+          runningBalances[wKey] = currentAvailable - rawAmount
+        }
       }
     }
 
@@ -298,7 +322,7 @@ export function parseCsvText(csvText, defaultWallet = null, availableWallets = [
       rawWallet: rawWallet,
       wallet_id: wallet_id,
       wallet_name: wallet_name,
-      wallet_balance: matchedWallet ? Number(matchedWallet.current_balance ?? matchedWallet.balance ?? matchedWallet.initial_balance ?? 0) : 0,
+      wallet_balance: currentAvailable,
       isWalletMissing: isWalletMissing,
       isInsufficientBalance: isInsufficientBalance,
       isValid: isRowValid,
@@ -308,6 +332,83 @@ export function parseCsvText(csvText, defaultWallet = null, availableWallets = [
 
   results.headerValidation = headerValidation
   return results
+}
+
+/**
+ * Re-evaluates an existing list of parsed rows sequentially using fresh wallet balances.
+ * Useful after creating a wallet or adding an income in the import modal.
+ */
+export function recalculateRowsWithRunningBalance(rows, availableWallets = []) {
+  if (!Array.isArray(rows) || rows.length === 0) return []
+
+  const runningBalances = {}
+  if (Array.isArray(availableWallets)) {
+    availableWallets.forEach((w) => {
+      runningBalances[String(w.id)] = Number(w.current_balance ?? w.balance ?? w.initial_balance ?? 0)
+    })
+  }
+
+  return rows.map((r) => {
+    let matchedWallet = null
+    if (r.wallet_id && Array.isArray(availableWallets)) {
+      matchedWallet = availableWallets.find((w) => String(w.id) === String(r.wallet_id))
+    } else if (r.wallet_name && Array.isArray(availableWallets)) {
+      matchedWallet = availableWallets.find(
+        (w) => w.name.trim().toLowerCase() === String(r.wallet_name).trim().toLowerCase()
+      )
+    } else if (r.rawWallet && Array.isArray(availableWallets)) {
+      matchedWallet = availableWallets.find(
+        (w) => String(w.id) === String(r.rawWallet) || w.name.trim().toLowerCase() === String(r.rawWallet).trim().toLowerCase()
+      )
+    }
+
+    const walletId = matchedWallet ? matchedWallet.id : r.wallet_id
+    const walletName = matchedWallet ? matchedWallet.name : r.wallet_name
+    const isWalletMissing = !matchedWallet && !walletId
+
+    let isInsufficientBalance = false
+    let currentAvailable = 0
+
+    if (walletId && !isWalletMissing) {
+      const wKey = String(walletId)
+      if (!(wKey in runningBalances)) {
+        runningBalances[wKey] = matchedWallet
+          ? Number(matchedWallet.current_balance ?? matchedWallet.balance ?? matchedWallet.initial_balance ?? 0)
+          : Number(r.wallet_balance ?? 0)
+      }
+      currentAvailable = runningBalances[wKey]
+
+      const amt = Number(r.amount || 0)
+      if (r.type === 'income') {
+        runningBalances[wKey] = currentAvailable + amt
+      } else if (r.type === 'expense' || r.type === 'transfer') {
+        if (amt > currentAvailable) {
+          isInsufficientBalance = true
+        } else {
+          runningBalances[wKey] = currentAvailable - amt
+        }
+      }
+    }
+
+    const missing = []
+    if (!r.date) missing.push('Date')
+    if (!r.type) missing.push('Type')
+    if (!r.category) missing.push('Category')
+    if (!walletId || isWalletMissing) missing.push('Wallet')
+    if (!r.amount || Number(r.amount) <= 0) missing.push('Amount')
+    if (isInsufficientBalance) missing.push('Insufficient Wallet Funds')
+
+    return {
+      ...r,
+      wallet_id: walletId,
+      wallet_name: walletName,
+      wallet_balance: currentAvailable,
+      isWalletMissing,
+      isInsufficientBalance,
+      isValid: missing.length === 0,
+      missingFields: missing,
+    }
+  })
 }
 
 export default parseCsvText

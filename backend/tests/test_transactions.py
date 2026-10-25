@@ -52,3 +52,47 @@ def test_transactions_and_wallet_deduction(client):
     # Delete transaction
     del_res = client.delete(f"/api/transactions/{txn['id']}?type=expense")
     assert del_res.status_code in [200, 204]
+
+
+def test_bulk_import_running_balance_prevents_negative(client):
+    # Create wallet with exactly 1000 initial balance
+    w_res = client.post("/api/wallets", json={
+        "name": "Current Wallet",
+        "wallet_type": "BANK",
+        "initial_balance": 1000.0,
+        "color": "#3b82f6"
+    })
+    assert w_res.status_code == 201
+    wallet_id = w_res.json()["id"]
+
+    # Bulk import two expenses: 700 and 800
+    bulk_res = client.post("/api/transactions/bulk", json={
+        "transactions": [
+            {
+                "type": "expense",
+                "amount": 700.0,
+                "category": "Food",
+                "note": "First expense",
+                "date": "2026-10-25",
+                "wallet_id": wallet_id
+            },
+            {
+                "type": "expense",
+                "amount": 800.0,
+                "category": "Shopping",
+                "note": "Second expense",
+                "date": "2026-10-25",
+                "wallet_id": wallet_id
+            }
+        ]
+    })
+    assert bulk_res.status_code == 201
+    res_data = bulk_res.json()
+    assert res_data["imported"] == 1
+    assert res_data["skipped"] == 1
+
+    # Verify wallet balance is 300 (1000 - 700), NOT -500
+    wallets_res = client.get("/api/wallets")
+    w = next(item for item in wallets_res.json() if item["id"] == wallet_id)
+    assert w["current_balance"] == 300.0
+

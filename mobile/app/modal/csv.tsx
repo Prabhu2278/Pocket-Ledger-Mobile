@@ -43,6 +43,17 @@ interface ParsedImportRow {
   wallet_id?: number;
 }
 
+interface EvaluatedRow extends ParsedImportRow {
+  targetWalletId: number | null;
+  targetWalletName: string;
+  canRecord: boolean;
+  isNewWallet: boolean;
+  isInsufficientFunds: boolean;
+  availableBalanceBefore: number;
+  balanceAfter: number;
+  shortage: number;
+}
+
 type IssueType = 'NEW_WALLET_INCOME' | 'NEW_WALLET_EXPENSE' | 'LOW_FUNDS';
 
 interface WalletIssue {
@@ -110,22 +121,65 @@ export default function CsvImportModal() {
     return values;
   };
 
-  // Normalizes dates (e.g. DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD)
+  // Month name lookup for bank statement date formats (e.g. 15-Oct-2024, 15 Oct 2024)
+  const MONTHS: Record<string, string> = {
+    jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+    jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  };
+
+  // Normalizes dates (e.g. YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, DD-Mon-YYYY)
   const normalizeDate = (raw: string): string => {
+    if (!raw) return getTodayIso();
     const clean = raw.trim().replace(/^["']|["']$/g, '');
     if (/^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
-    if (clean.includes('/') || clean.includes('-')) {
-      const parts = clean.split(/[/-]/).map(Number);
-      if (parts.length === 3) {
-        if (parts[0] > 1000) {
-          return `${parts[0]}-${String(parts[1]).padStart(2, '0')}-${String(parts[2]).padStart(2, '0')}`;
-        } else if (parts[2] > 1000) {
-          const day = parts[0] > 12 ? parts[0] : parts[1];
-          const month = parts[0] > 12 ? parts[1] : parts[0];
-          return `${parts[2]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    const parts = clean.split(/[/\-\s,]+/).filter(Boolean);
+    if (parts.length >= 3) {
+      let day: number | null = null;
+      let month: string | null = null;
+      let year: number | null = null;
+
+      for (const p of parts) {
+        if (/^\d{4}$/.test(p)) {
+          year = parseInt(p, 10);
+        } else if (MONTHS[p.toLowerCase().slice(0, 3)]) {
+          month = MONTHS[p.toLowerCase().slice(0, 3)];
         }
       }
+
+      if (year) {
+        const nonYears = parts.filter((p) => !/^\d{4}$/.test(p));
+        if (month) {
+          const numPart = nonYears.find((p) => !MONTHS[p.toLowerCase().slice(0, 3)] && !isNaN(Number(p)));
+          if (numPart) day = parseInt(numPart, 10);
+        } else if (nonYears.length >= 2) {
+          const n1 = parseInt(nonYears[0], 10);
+          const n2 = parseInt(nonYears[1], 10);
+          if (!isNaN(n1) && !isNaN(n2)) {
+            if (n1 > 12) {
+              day = n1;
+              month = String(n2).padStart(2, '0');
+            } else if (n2 > 12) {
+              day = n2;
+              month = String(n1).padStart(2, '0');
+            } else {
+              day = n1;
+              month = String(n2).padStart(2, '0');
+            }
+          }
+        }
+      }
+
+      if (year && month && day && !isNaN(day)) {
+        return `${year}-${month}-${String(day).padStart(2, '0')}`;
+      }
     }
+
+    const parsed = new Date(clean);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString().split('T')[0];
+    }
+
     return getTodayIso();
   };
 
@@ -149,19 +203,28 @@ export default function CsvImportModal() {
         setFileName(file.name);
 
         let content = '';
-        try {
-          const res = await fetch(file.uri);
-          content = await res.text();
-        } catch {
+        if (Platform.OS === 'web') {
+          if ((file as any).file && typeof (file as any).file.text === 'function') {
+            content = await (file as any).file.text();
+          } else {
+            const res = await fetch(file.uri);
+            content = await res.text();
+          }
+        } else {
           try {
             content = await FileSystem.readAsStringAsync(file.uri, {
               encoding: 'utf8',
             });
           } catch {
-            if ((file as any).file && typeof (file as any).file.text === 'function') {
-              content = await (file as any).file.text();
-            } else {
-              throw new Error('Unable to read chosen file. Please select a valid CSV file.');
+            try {
+              const res = await fetch(file.uri);
+              content = await res.text();
+            } catch {
+              if ((file as any).file && typeof (file as any).file.text === 'function') {
+                content = await (file as any).file.text();
+              } else {
+                throw new Error('Unable to read chosen file. Please select a valid CSV file.');
+              }
             }
           }
         }
@@ -178,16 +241,39 @@ export default function CsvImportModal() {
     }
   };
 
-  // Parse CSV string into Transaction items
+  // Parse CSV string into Transaction items with smart header detection
   const parseCsvString = (text: string, currentFileName?: string) => {
-    const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length < 2) {
+    const rawLines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+    if (rawLines.length < 2) {
       setError('CSV file appears to be empty or missing headers.');
       return;
     }
 
-    const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
-    const dateIdx = headers.findIndex((h) => h.includes('date') || h.includes('time'));
+    // Smart header finder: search first 10 rows for columns like date, amount, debit, credit
+    let headerIdx = -1;
+    let headers: string[] = [];
+    for (let i = 0; i < Math.min(rawLines.length, 10); i++) {
+      const candidateHeaders = splitCsvLine(rawLines[i]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const hasAmount = candidateHeaders.some((h) =>
+        h.includes('amount') || h.includes('amt') || h.includes('total') || h.includes('value') ||
+        h.includes('debit') || h.includes('credit') || h === 'dr' || h === 'cr'
+      );
+      const hasDate = candidateHeaders.some((h) =>
+        h.includes('date') || h.includes('time') || h.includes('spent') || h.includes('txn')
+      );
+      if (hasAmount || hasDate) {
+        headerIdx = i;
+        headers = candidateHeaders;
+        break;
+      }
+    }
+
+    if (headerIdx === -1) {
+      headerIdx = 0;
+      headers = splitCsvLine(rawLines[0]).map((h) => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    }
+
+    const dateIdx = headers.findIndex((h) => h.includes('date') || h.includes('time') || h.includes('spent') || h.includes('txn'));
     const amountIdx = headers.findIndex(
       (h) => h.includes('amount') || h.includes('amt') || h.includes('total') || h.includes('value')
     );
@@ -203,15 +289,21 @@ export default function CsvImportModal() {
     );
     const catIdx = headers.findIndex((h) => h.includes('cat') || h.includes('tag'));
     const typeIdx = headers.findIndex((h) => h.includes('type'));
-    const walletIdx = headers.findIndex((h) => h.includes('wallet') || h.includes('account'));
+    const walletIdx = headers.findIndex(
+      (h) =>
+        h.includes('wallet') ||
+        h.includes('account') ||
+        h.includes('bank') ||
+        h.includes('method') ||
+        h.includes('source') ||
+        h.includes('mode')
+    );
 
     const items: ParsedImportRow[] = [];
     const isIncomeFile = (currentFileName || '').toLowerCase().includes('income');
-    const defaultWallet = wallets.find((w) => w.id === targetWalletId) || wallets[0];
-    const defaultWalletName = defaultWallet ? defaultWallet.name : 'Main Wallet';
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = splitCsvLine(lines[i]);
+    for (let i = headerIdx + 1; i < rawLines.length; i++) {
+      const cols = splitCsvLine(rawLines[i]);
       if (cols.length <= 1) continue;
 
       let amtVal = 0;
@@ -272,10 +364,9 @@ export default function CsvImportModal() {
       const catVal =
         catIdx !== -1 && cols[catIdx] ? cols[catIdx] : typeVal === 'income' ? 'Salary' : 'Other';
 
-      // Resolve Wallet Name specified in CSV, or default
-      let rawWalletName = defaultWalletName;
+      let rawWalletName = '';
       if (walletIdx !== -1 && cols[walletIdx] && cols[walletIdx].trim()) {
-        rawWalletName = cols[walletIdx].trim();
+        rawWalletName = cols[walletIdx].trim().replace(/^(wallet|account|bank)\s*:\s*/i, '');
       }
 
       items.push({
@@ -291,7 +382,7 @@ export default function CsvImportModal() {
 
     if (items.length === 0) {
       setError(
-        'Could not identify transactions in the CSV. Please ensure headers include Date, Amount, and Note/Description.'
+        'Could not identify transactions in the CSV. Please ensure columns include Date, Amount, and Note/Description.'
       );
     } else {
       setParsedRows(items);
@@ -299,91 +390,179 @@ export default function CsvImportModal() {
   };
 
   // ---------------------------------------------------------------------------
-  // Wallet Requirements & Validation Engine:
-  // 1. Checks if wallet exists in app.
-  // 2. Detects new wallet with income -> Prompts user can I add new wallet.
-  // 3. Detects new wallet with expense -> Asks to create wallet, then pops up
-  //    Income Form ("Did you forget to add the income?") to fund the wallet.
-  // 4. Detects existing wallet with low funds -> Pops up Income Form to add income.
+  // Sequential Running Balance Evaluation Engine:
+  // Processes rows in chronological/statement order.
+  // - Starts with current wallet balance.
+  // - Deducts expenses sequentially.
+  // - If a wallet name does not exist in the app, flags it as isNewWallet.
+  // - If an expense exceeds remaining balance, flags isInsufficientFunds.
   // ---------------------------------------------------------------------------
+  const evaluatedRows = useMemo<EvaluatedRow[]>(() => {
+    if (parsedRows.length === 0) return [];
+
+    const runningBalances: Record<number, number> = {};
+    wallets.forEach((w) => {
+      runningBalances[w.id] = Number(w.current_balance ?? w.balance ?? w.initial_balance ?? 0);
+    });
+
+    return parsedRows.map((row) => {
+      const rawWalletTrimmed = (row.rawWalletName || '').trim();
+      let matchedW: Wallet | undefined;
+
+      if (rawWalletTrimmed) {
+        matchedW = wallets.find(
+          (w) =>
+            w.name.toLowerCase() === rawWalletTrimmed.toLowerCase() ||
+            String(w.id) === rawWalletTrimmed
+        );
+      } else {
+        // Only fallback to selected default wallet if row did NOT specify a wallet
+        matchedW =
+          (targetWalletId ? wallets.find((w) => w.id === targetWalletId) : null) ||
+          wallets[0];
+      }
+
+      // If a wallet was explicitly in the row, but does not match any existing wallet in the app:
+      const isNewWallet = Boolean(rawWalletTrimmed && !matchedW);
+      const targetWId = matchedW?.id ?? null;
+      const targetWName = matchedW ? matchedW.name : rawWalletTrimmed || 'Unassigned';
+
+      let canRecord = false;
+      let isInsufficientFunds = false;
+      let shortage = 0;
+      let availableBefore = 0;
+      let balanceAfter = 0;
+
+      if (isNewWallet) {
+        // The wallet does not exist in the app yet. Cannot record until created.
+        canRecord = false;
+        availableBefore = 0;
+        balanceAfter = 0;
+        if (row.type === 'expense') {
+          isInsufficientFunds = true;
+          shortage = row.amount;
+        }
+      } else if (matchedW && targetWId !== null) {
+        if (!(targetWId in runningBalances)) {
+          runningBalances[targetWId] = Number(
+            matchedW.current_balance ?? matchedW.balance ?? matchedW.initial_balance ?? 0
+          );
+        }
+        availableBefore = runningBalances[targetWId];
+
+        if (row.type === 'income') {
+          runningBalances[targetWId] = availableBefore + row.amount;
+          balanceAfter = runningBalances[targetWId];
+          canRecord = true;
+        } else {
+          // Expense: check against remaining running balance
+          if (row.amount <= availableBefore) {
+            runningBalances[targetWId] = availableBefore - row.amount;
+            balanceAfter = runningBalances[targetWId];
+            canRecord = true;
+          } else {
+            // Insufficient funds! Exceeds available balance.
+            // Wallet balance stays untouched so it will NOT go negative!
+            canRecord = false;
+            isInsufficientFunds = true;
+            shortage = row.amount - availableBefore;
+            balanceAfter = availableBefore;
+          }
+        }
+      }
+
+      return {
+        ...row,
+        targetWalletId: targetWId,
+        targetWalletName: targetWName,
+        canRecord,
+        isNewWallet,
+        isInsufficientFunds,
+        availableBalanceBefore: availableBefore,
+        balanceAfter,
+        shortage,
+      };
+    });
+  }, [parsedRows, wallets, targetWalletId]);
+
+  const { recordableRows, insufficientFundRows, newWalletRows, totalShortage } = useMemo(() => {
+    const recordable = evaluatedRows.filter((r) => r.canRecord);
+    const insufficient = evaluatedRows.filter((r) => r.isInsufficientFunds);
+    const newWallets = evaluatedRows.filter((r) => r.isNewWallet);
+    const totalShort = insufficient.reduce((sum, r) => sum + r.shortage, 0);
+    return {
+      recordableRows: recordable,
+      insufficientFundRows: insufficient,
+      newWalletRows: newWallets,
+      totalShortage: totalShort,
+    };
+  }, [evaluatedRows]);
+
   const walletIssues = useMemo<WalletIssue[]>(() => {
     if (parsedRows.length === 0) return [];
 
     const issues: WalletIssue[] = [];
-    const walletGroups: Record<string, ParsedImportRow[]> = {};
 
-    parsedRows.forEach((r) => {
-      const wName = r.rawWalletName || (wallets[0]?.name || 'Main Wallet');
-      if (!walletGroups[wName]) walletGroups[wName] = [];
-      walletGroups[wName].push(r);
+    // 1. Group new wallet rows (wallets that don't exist in the app)
+    const newWalletGroups: Record<string, EvaluatedRow[]> = {};
+    newWalletRows.forEach((r) => {
+      const wName = (r.rawWalletName || r.targetWalletName || '').trim();
+      if (!newWalletGroups[wName]) newWalletGroups[wName] = [];
+      newWalletGroups[wName].push(r);
     });
 
-    Object.keys(walletGroups).forEach((wName) => {
-      const rows = walletGroups[wName];
-      const matchedWallet = wallets.find(
-        (w) => w.name.toLowerCase() === wName.toLowerCase()
-      );
+    Object.keys(newWalletGroups).forEach((wName) => {
+      const rows = newWalletGroups[wName];
+      const totalInc = rows.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0);
+      const totalExp = rows.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0);
+      const hasExpense = totalExp > 0;
 
-      const totalIncomeInBatch = rows
-        .filter((r) => r.type === 'income')
-        .reduce((sum, r) => sum + r.amount, 0);
+      issues.push({
+        id: `issue-${wName}-new`,
+        type: hasExpense ? 'NEW_WALLET_EXPENSE' : 'NEW_WALLET_INCOME',
+        walletName: wName,
+        currentBalance: 0,
+        totalIncomeInBatch: totalInc,
+        totalExpenseInBatch: totalExp,
+        shortageAmount: Math.max(0, totalExp - totalInc),
+      });
+    });
 
-      const totalExpenseInBatch = rows
-        .filter((r) => r.type === 'expense')
-        .reduce((sum, r) => sum + r.amount, 0);
+    // 2. Group existing wallet low funds (wallets that already exist but don't have enough money)
+    const lowFundByWallet: Record<string, EvaluatedRow[]> = {};
+    insufficientFundRows.forEach((r) => {
+      if (r.isNewWallet) return;
+      const wName = r.targetWalletName;
+      if (!lowFundByWallet[wName]) lowFundByWallet[wName] = [];
+      lowFundByWallet[wName].push(r);
+    });
 
-      // Condition A: New Wallet (not in app)
-      if (!matchedWallet) {
-        if (totalExpenseInBatch > 0) {
-          const shortage = Math.max(0, totalExpenseInBatch - totalIncomeInBatch);
-          issues.push({
-            id: `issue-${wName}-new-expense`,
-            type: 'NEW_WALLET_EXPENSE',
-            walletName: wName,
-            currentBalance: 0,
-            totalIncomeInBatch,
-            totalExpenseInBatch,
-            shortageAmount: shortage > 0 ? shortage : totalExpenseInBatch,
-          });
-        } else {
-          issues.push({
-            id: `issue-${wName}-new-income`,
-            type: 'NEW_WALLET_INCOME',
-            walletName: wName,
-            currentBalance: 0,
-            totalIncomeInBatch,
-            totalExpenseInBatch: 0,
-            shortageAmount: 0,
-          });
-        }
-      } else {
-        // Condition B: Existing Wallet in app -> Check fund sufficiency
-        const currentBal = Number(
-          matchedWallet.current_balance ?? matchedWallet.balance ?? matchedWallet.initial_balance ?? 0
-        );
-        const availableFunds = currentBal + totalIncomeInBatch;
+    Object.keys(lowFundByWallet).forEach((wName) => {
+      const rows = lowFundByWallet[wName];
+      const maxShortage = Math.max(...rows.map((r) => r.shortage));
+      const targetW =
+        wallets.find((w) => w.id === rows[0]?.targetWalletId) ||
+        wallets.find((w) => w.name.toLowerCase() === wName.toLowerCase());
+      const currentBal = Number(targetW?.current_balance ?? targetW?.balance ?? 0);
+      const totalExp = rows.reduce((s, r) => s + r.amount, 0);
 
-        if (totalExpenseInBatch > availableFunds) {
-          const shortage = totalExpenseInBatch - availableFunds;
-          issues.push({
-            id: `issue-${wName}-low-funds`,
-            type: 'LOW_FUNDS',
-            walletName: matchedWallet.name,
-            matchedWallet,
-            currentBalance: currentBal,
-            totalIncomeInBatch,
-            totalExpenseInBatch,
-            shortageAmount: shortage,
-          });
-        }
-      }
+      issues.push({
+        id: `issue-${wName}-low-funds`,
+        type: 'LOW_FUNDS',
+        walletName: wName,
+        matchedWallet: targetW,
+        currentBalance: currentBal,
+        totalIncomeInBatch: 0,
+        totalExpenseInBatch: totalExp,
+        shortageAmount: maxShortage,
+      });
     });
 
     return issues;
-  }, [parsedRows, wallets]);
+  }, [parsedRows, wallets, insufficientFundRows, newWalletRows]);
 
   // ---------------------------------------------------------------------------
-  // Action: Open Income Form when low funds are detected
+  // Action: Open Income Form when low funds are detected for an existing wallet
   // ---------------------------------------------------------------------------
   const handleOpenIncomeFormForExistingWallet = (issue: WalletIssue) => {
     const targetW =
@@ -402,19 +581,22 @@ export default function CsvImportModal() {
     setShowIncomeForm(true);
   };
 
-  // Action: Handle New Wallet Flow
+  // ---------------------------------------------------------------------------
+  // Action: Handle New Wallet Flow (Income or 2-Step Expense Requirement)
+  // ---------------------------------------------------------------------------
   const handleOpenNewWalletFlow = (issue: WalletIssue) => {
     if (issue.type === 'NEW_WALLET_INCOME') {
-      // Income-only new wallet: Prompt user if we can add it
+      // Income-only new wallet: Prompt user if they want to create the new wallet
       Alert.alert(
         'New Wallet Detected',
-        `The imported data has income for new wallet "${issue.walletName}". Can I add this new wallet to your app?`,
+        `The imported data has a wallet named "${issue.walletName}" that does not exist in the app.\n\nDo you want to create a new wallet for that?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Yes, Add Wallet',
+            text: 'Yes, Create Wallet',
             onPress: async () => {
               try {
+                setLoading(true);
                 await createWallet({
                   name: issue.walletName,
                   wallet_type: 'BANK',
@@ -423,27 +605,33 @@ export default function CsvImportModal() {
                 });
                 await refreshAll();
                 Alert.alert(
-                  'Wallet Added',
-                  `Wallet "${issue.walletName}" has been created! The incoming transaction will be deposited directly to it.`
+                  'Wallet Created',
+                  `Wallet "${issue.walletName}" has been created in your app and database! The incoming transaction (+${formatCurrency(issue.totalIncomeInBatch, currency)}) will now be deposited directly into it.`
                 );
               } catch (err: any) {
                 Alert.alert('Error', err?.message || 'Failed to create new wallet');
+              } finally {
+                setLoading(false);
               }
             },
           },
         ]
       );
     } else {
-      // New Wallet with Expense: Requires 2 steps: Create Wallet, then Pop up Income Form
+      // New Wallet with Expense: Requires 2 Requirements:
+      // Requirement 1: Prompt user to create new wallet (initial balance 0 cash).
+      // Requirement 2: Detect 0 cash, alert low funds ("Did you forget to add the income?"),
+      // and pop up the Income Form to deposit funds before recording the expense!
       Alert.alert(
-        'New Wallet with Expense',
-        `The imported data has expenses of ${formatCurrency(issue.totalExpenseInBatch, currency)} for new wallet "${issue.walletName}". Can I create this new wallet first?`,
+        'New Wallet Detected (Requirement 1 of 2)',
+        `This is a new wallet "${issue.walletName}" that doesn't exist in the app wallets.\n\nDo you want to create a new wallet for this record?\n\nNote: Newly created wallets start with ₹0 cash, so an income will be required to cover the statement expenses.`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Yes, Create Wallet',
             onPress: async () => {
               try {
+                setLoading(true);
                 const newW = await createWallet({
                   name: issue.walletName,
                   wallet_type: 'BANK',
@@ -452,11 +640,12 @@ export default function CsvImportModal() {
                 });
                 await refreshAll();
 
-                // Immediately pop up the Income Form with "Did you forget to add the income?"
+                // Requirement 2: Immediately pop up the Income Form with "Did you forget to add the income?"
+                const minNeeded = issue.shortageAmount > 0 ? issue.shortageAmount : issue.totalExpenseInBatch;
                 setIncomeFormWallet(newW);
                 setIncomeFormWalletName(issue.walletName);
-                setIncomeMinRequired(issue.shortageAmount);
-                setIncomeAmount(String(Math.ceil(issue.shortageAmount)));
+                setIncomeMinRequired(minNeeded);
+                setIncomeAmount(String(Math.ceil(minNeeded)));
                 setIncomeCategory('Salary');
                 setIncomeNote(`Opening Income Deposit for ${issue.walletName}`);
                 setIncomeDate(getTodayIso());
@@ -465,6 +654,8 @@ export default function CsvImportModal() {
                 setShowIncomeForm(true);
               } catch (err: any) {
                 Alert.alert('Error', err?.message || 'Failed to create new wallet');
+              } finally {
+                setLoading(false);
               }
             },
           },
@@ -535,66 +726,134 @@ export default function CsvImportModal() {
   const handleConfirmImport = async () => {
     if (parsedRows.length === 0) return;
 
-    // Check if any requirements remain unresolved
-    if (walletIssues.length > 0) {
-      const first = walletIssues[0];
-      if (first.type === 'LOW_FUNDS') {
+    // Check 1: If there are unresolved new wallets, prompt user to create them first!
+    if (newWalletRows.length > 0) {
+      const firstNew = newWalletRows[0];
+      const issue = walletIssues.find((i) => i.walletName === firstNew.rawWalletName) || walletIssues[0];
+      Alert.alert(
+        'Action Required: New Wallet',
+        `The imported data has a wallet named "${firstNew.rawWalletName || firstNew.targetWalletName}" that doesn't exist in your app wallets.\n\nDo you want to create a new wallet for this record first?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Create New Wallet',
+            onPress: () => {
+              if (issue) handleOpenNewWalletFlow(issue);
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Check 2: If no transactions are recordable due to low funds
+    if (recordableRows.length === 0) {
+      if (insufficientFundRows.length > 0) {
+        const first = insufficientFundRows[0];
         Alert.alert(
           'Low Funds Alert',
-          `Wallet "${first.walletName}" has low funds (short by ${formatCurrency(first.shortageAmount, currency)}). Please add income before importing this data.`,
+          `Cannot record transaction(s) because wallet "${first.targetWalletName}" only has ${formatCurrency(first.availableBalanceBefore, currency)} available (needs ${formatCurrency(first.amount, currency)}).\n\nDid you forget to add the income? Please add income first so your balance won't drop below 0.`,
           [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Add Income Now',
-              onPress: () => handleOpenIncomeFormForExistingWallet(first),
+              onPress: () => {
+                const issue = walletIssues.find((i) => i.walletName === first.targetWalletName);
+                if (issue) {
+                  handleOpenIncomeFormForExistingWallet(issue);
+                } else {
+                  const targetW = wallets.find((w) => w.id === first.targetWalletId) || wallets[0];
+                  setIncomeFormWallet(targetW || null);
+                  setIncomeFormWalletName(first.targetWalletName);
+                  setIncomeMinRequired(first.shortage);
+                  setIncomeAmount(String(Math.ceil(first.shortage)));
+                  setIncomeCategory('Salary');
+                  setIncomeNote(`Deposit to cover ${first.targetWalletName} expenses`);
+                  setIncomeDate(getTodayIso());
+                  setIncomeFormReason('LOW_FUNDS');
+                  setIncomeFormError(null);
+                  setShowIncomeForm(true);
+                }
+              },
             },
           ]
         );
       } else {
-        Alert.alert(
-          'Wallet Requirement Needed',
-          first.type === 'NEW_WALLET_EXPENSE'
-            ? `Wallet "${first.walletName}" is a new wallet with expenses. Please create the wallet and add income to cover it.`
-            : `New wallet "${first.walletName}" detected. Can I add this new wallet to your app?`,
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Resolve Now',
-              onPress: () => handleOpenNewWalletFlow(first),
-            },
-          ]
-        );
+        Alert.alert('Cannot Import', 'No valid transactions found to record.');
       }
       return;
     }
 
+    // Check 3: If some rows will be skipped due to insufficient funds, prompt user
+    if (insufficientFundRows.length > 0) {
+      Alert.alert(
+        'Import Valid Transactions?',
+        `${recordableRows.length} of ${evaluatedRows.length} transactions will be recorded.\n\n${insufficientFundRows.length} transaction(s) cannot be recorded because wallet funds are insufficient (preventing your wallet balance from going under 0).\n\nDid you forget to add the income? You can add income now or proceed to import the ${recordableRows.length} valid transaction(s).`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Add Income First',
+            onPress: () => {
+              const first = insufficientFundRows[0];
+              const issue = walletIssues.find((i) => i.walletName === first.targetWalletName);
+              if (issue) {
+                handleOpenIncomeFormForExistingWallet(issue);
+              } else {
+                const targetW = wallets.find((w) => w.id === first.targetWalletId) || wallets[0];
+                setIncomeFormWallet(targetW || null);
+                setIncomeFormWalletName(first.targetWalletName);
+                setIncomeMinRequired(first.shortage);
+                setIncomeAmount(String(Math.ceil(first.shortage)));
+                setIncomeCategory('Salary');
+                setIncomeNote(`Deposit to cover ${first.targetWalletName} expenses`);
+                setIncomeDate(getTodayIso());
+                setIncomeFormReason('LOW_FUNDS');
+                setIncomeFormError(null);
+                setShowIncomeForm(true);
+              }
+            },
+          },
+          {
+            text: `Import ${recordableRows.length} Transactions`,
+            onPress: () => executeBulkImport(recordableRows),
+          },
+        ]
+      );
+      return;
+    }
+
+    // All rows are recordable
+    executeBulkImport(recordableRows);
+  };
+
+  const executeBulkImport = async (rowsToSave: EvaluatedRow[]) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Map rows with verified wallet_id
-      const rowsToImport: TransactionCreateInput[] = parsedRows.map((r) => {
-        const wMatch =
-          wallets.find((w) => w.name.toLowerCase() === r.rawWalletName.toLowerCase()) ||
-          wallets[0];
-        return {
-          type: r.type,
-          amount: r.amount,
-          category: r.category,
-          note: r.note,
-          date: r.date,
-          wallet_id: wMatch?.id,
-        };
-      });
+      const rowsToImport: TransactionCreateInput[] = rowsToSave.map((r) => ({
+        type: r.type,
+        amount: r.amount,
+        category: r.category,
+        note: r.note,
+        date: r.date,
+        wallet_id: r.targetWalletId,
+      }));
 
       const res = await api.transactions.bulkImport(rowsToImport);
       await refreshAll();
 
-      Alert.alert(
-        'Import Successful',
-        `Successfully imported ${res.imported} transactions into your ledger.`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      let msg = `Successfully imported ${res.imported} transaction(s) into your ledger.`;
+      if (insufficientFundRows.length > 0) {
+        msg += `\n\n${insufficientFundRows.length} transaction(s) were skipped to prevent your wallet from going under 0.`;
+      }
+
+      Alert.alert('Import Successful', msg, [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (err: any) {
       setError(err?.message || 'Failed to import transactions.');
     } finally {
@@ -648,10 +907,10 @@ export default function CsvImportModal() {
         </TouchableOpacity>
 
         {/* Target Wallet Selection if CSV doesn't have wallet column */}
-        {parsedRows.length > 0 && wallets.length > 0 ? (
+        {parsedRows.length > 0 && wallets.length > 0 && parsedRows.some((r) => !r.rawWalletName) ? (
           <View style={[styles.targetWalletSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.targetWalletLabel, { color: theme.textSecondary }]}>
-              Default Wallet (when not specified in row):
+              Default Wallet (for rows without specified wallet):
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {wallets.map((w) => {
@@ -691,21 +950,35 @@ export default function CsvImportModal() {
           <View style={{ marginTop: Spacing.lg }}>
             <View style={styles.sectionHeaderRow}>
               <Text style={[styles.sectionHeading, { color: theme.text }]}>
-                Import Requirements Check
+                Sequential Balance & Requirements Check
               </Text>
               <View
                 style={[
                   styles.badge,
-                  { backgroundColor: walletIssues.length === 0 ? theme.successSoft : theme.warningSoft },
+                  {
+                    backgroundColor:
+                      insufficientFundRows.length === 0 && newWalletRows.length === 0
+                        ? theme.successSoft
+                        : theme.warningSoft,
+                  },
                 ]}
               >
                 <Text
                   style={[
                     styles.badgeText,
-                    { color: walletIssues.length === 0 ? theme.success : theme.warning },
+                    {
+                      color:
+                        insufficientFundRows.length === 0 && newWalletRows.length === 0
+                          ? theme.success
+                          : theme.warning,
+                    },
                   ]}
                 >
-                  {walletIssues.length === 0 ? '✓ All Requirements Met' : `${walletIssues.length} Action Needed`}
+                  {insufficientFundRows.length === 0 && newWalletRows.length === 0
+                    ? `✓ All ${recordableRows.length} Ready to Record`
+                    : newWalletRows.length > 0
+                    ? `${newWalletRows.length} New Wallet • ${insufficientFundRows.length} Low Funds`
+                    : `${recordableRows.length} Ready • ${insufficientFundRows.length} Low Funds`}
                 </Text>
               </View>
             </View>
@@ -755,17 +1028,17 @@ export default function CsvImportModal() {
                               { color: isLowFunds ? theme.danger : theme.warning },
                             ]}
                           >
-                            {isNewWalletIncome ? 'New Wallet' : isNewWalletExpense ? 'Missing Income' : 'Low Funds'}
+                            {isNewWalletIncome ? 'Create Wallet' : isNewWalletExpense ? '2 Requirements' : 'Add Income'}
                           </Text>
                         </View>
                       </View>
 
                       <Text style={[styles.issueDescription, { color: theme.textSecondary }]}>
                         {isNewWalletIncome
-                          ? `This wallet is not in your app. Income of +${formatCurrency(issue.totalIncomeInBatch, currency)} can be recorded once the wallet is created.`
+                          ? `The imported data has a wallet named "${issue.walletName}" that does not exist in the app. Do you want to create a new wallet for that? (Income: +${formatCurrency(issue.totalIncomeInBatch, currency)})`
                           : isNewWalletExpense
-                          ? `This wallet is not in your app and has expenses of -${formatCurrency(issue.totalExpenseInBatch, currency)}. Please create the wallet and add income to cover the expense.`
-                          : `Wallet has ${formatCurrency(issue.currentBalance, currency)}, but imported expenses require ${formatCurrency(issue.totalExpenseInBatch, currency)}. Short by ${formatCurrency(issue.shortageAmount, currency)}.`}
+                          ? `This is a new wallet that doesn't exist in the app wallet. Do you want to create a new wallet for this record?\n\nNote: Newly created wallets start with ₹0 cash, so an income will be required to cover the statement expenses.`
+                          : `Wallet "${issue.walletName}" has low funds (${formatCurrency(issue.currentBalance, currency)} available, needs ${formatCurrency(issue.shortageAmount, currency)} more). Did you forget to add the income?`}
                       </Text>
 
                       <TouchableOpacity
@@ -785,16 +1058,16 @@ export default function CsvImportModal() {
                         ]}
                       >
                         <Ionicons
-                          name={isNewWalletIncome ? 'add-circle-outline' : 'cash-outline'}
+                          name={isNewWalletIncome ? 'add-circle-outline' : isNewWalletExpense ? 'wallet-outline' : 'cash-outline'}
                           size={16}
                           color="#ffffff"
                           style={{ marginRight: 6 }}
                         />
                         <Text style={styles.issueActionBtnText}>
                           {isNewWalletIncome
-                            ? `Can I add "${issue.walletName}"? (Tap to Add)`
+                            ? `Create New Wallet "${issue.walletName}"`
                             : isNewWalletExpense
-                            ? `Create Wallet & Add Missing Income`
+                            ? `Requirement 1: Create Wallet "${issue.walletName}"`
                             : `Add Income (+${formatCurrency(issue.shortageAmount, currency)})`}
                         </Text>
                       </TouchableOpacity>
@@ -815,7 +1088,7 @@ export default function CsvImportModal() {
                     All Wallets & Funds Verified
                   </Text>
                   <Text style={[styles.verifiedBannerText, { color: theme.textSecondary }]}>
-                    All transactions match existing wallets and have sufficient funds. You can proceed with import.
+                    All transactions match existing wallets and stay within available balances. You can proceed with import.
                   </Text>
                 </View>
               </View>
@@ -824,24 +1097,16 @@ export default function CsvImportModal() {
             {/* Statement Preview Header */}
             <View style={[styles.sectionHeaderRow, { marginTop: Spacing.xl }]}>
               <Text style={[styles.sectionHeading, { color: theme.text }]}>
-                Statement Preview ({parsedRows.length} Rows)
+                Statement Preview ({evaluatedRows.length} Rows)
               </Text>
               <Text style={[styles.previewSubtext, { color: theme.textMuted }]}>
-                {parsedRows.filter((r) => r.type === 'income').length} Incomes •{' '}
-                {parsedRows.filter((r) => r.type === 'expense').length} Expenses
+                {evaluatedRows.filter((r) => r.type === 'income').length} Incomes •{' '}
+                {evaluatedRows.filter((r) => r.type === 'expense').length} Expenses
               </Text>
             </View>
 
             {/* Rows Preview List */}
-            {parsedRows.slice(0, 6).map((row, idx) => {
-              const matchedW = wallets.find(
-                (w) => w.name.toLowerCase() === row.rawWalletName.toLowerCase()
-              );
-              const isLowFundRow =
-                matchedW &&
-                row.type === 'expense' &&
-                row.amount > Number(matchedW.current_balance ?? matchedW.balance ?? 0);
-
+            {evaluatedRows.slice(0, 10).map((row, idx) => {
               return (
                 <View
                   key={`preview-${idx}`}
@@ -849,7 +1114,11 @@ export default function CsvImportModal() {
                     styles.previewItem,
                     {
                       backgroundColor: theme.surface,
-                      borderColor: !matchedW ? theme.warning : isLowFundRow ? theme.danger : theme.border,
+                      borderColor: row.isNewWallet
+                        ? theme.warning
+                        : row.isInsufficientFunds
+                        ? theme.danger
+                        : theme.border,
                     },
                   ]}
                 >
@@ -858,18 +1127,26 @@ export default function CsvImportModal() {
                       <Text style={[styles.previewNote, { color: theme.text }]} numberOfLines={1}>
                         {row.note}
                       </Text>
-                      {!matchedW ? (
+                      {row.isNewWallet ? (
                         <View style={[styles.miniBadge, { backgroundColor: theme.warningSoft }]}>
                           <Text style={[styles.miniBadgeText, { color: theme.warning }]}>New Wallet</Text>
                         </View>
-                      ) : isLowFundRow ? (
+                      ) : row.isInsufficientFunds ? (
                         <View style={[styles.miniBadge, { backgroundColor: theme.dangerSoft }]}>
-                          <Text style={[styles.miniBadgeText, { color: theme.danger }]}>Low Funds</Text>
+                          <Text style={[styles.miniBadgeText, { color: theme.danger }]}>
+                            Low Funds (Avail: {formatCurrency(row.availableBalanceBefore, currency)})
+                          </Text>
                         </View>
-                      ) : null}
+                      ) : (
+                        <View style={[styles.miniBadge, { backgroundColor: theme.successSoft }]}>
+                          <Text style={[styles.miniBadgeText, { color: theme.success }]}>
+                            ✓ Will Record (Bal: {formatCurrency(row.balanceAfter, currency)})
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <Text style={[styles.previewMeta, { color: theme.textMuted }]}>
-                      {row.date} • {row.category} • Wallet: {row.rawWalletName}
+                      {row.date} • {row.category} • Wallet: {row.targetWalletName}
                     </Text>
                   </View>
                   <Text
@@ -885,22 +1162,29 @@ export default function CsvImportModal() {
               );
             })}
 
-            {parsedRows.length > 6 ? (
+            {evaluatedRows.length > 10 ? (
               <Text style={[styles.moreText, { color: theme.textMuted }]}>
-                ... and {parsedRows.length - 6} more transactions in statement
+                ... and {evaluatedRows.length - 10} more transactions in statement
               </Text>
             ) : null}
 
             {/* Confirm & Import Action Button */}
             <Button
               title={
-                walletIssues.length > 0
-                  ? `Resolve ${walletIssues.length} Requirement${walletIssues.length > 1 ? 's' : ''} to Import`
-                  : `Confirm & Import ${parsedRows.length} Transactions`
+                newWalletRows.length > 0
+                  ? `Action Required: Create Wallet "${newWalletRows[0].targetWalletName}"`
+                  : insufficientFundRows.length > 0 && recordableRows.length === 0
+                  ? 'Add Income to Record Transactions'
+                  : recordableRows.length === 0
+                  ? 'No Transactions Can Be Recorded'
+                  : insufficientFundRows.length > 0
+                  ? `Import ${recordableRows.length} Valid Transaction${recordableRows.length > 1 ? 's' : ''} (${insufficientFundRows.length} low funds skipped)`
+                  : `Confirm & Import ${recordableRows.length} Transactions`
               }
               onPress={handleConfirmImport}
               loading={loading}
-              variant={walletIssues.length > 0 ? 'secondary' : 'primary'}
+              disabled={recordableRows.length === 0 && newWalletRows.length === 0 && insufficientFundRows.length === 0}
+              variant={recordableRows.length === 0 ? 'secondary' : 'primary'}
               size="lg"
               style={{ marginTop: Spacing.lg }}
             />
@@ -970,16 +1254,16 @@ export default function CsvImportModal() {
                 />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.promptHighlightText, { color: theme.text }]}>
-                    {incomeFormReason === 'NEW_WALLET'
-                      ? 'Did you forget to add the income?'
-                      : 'Low Fund Alert! Add income to continue.'}
+                    Did you forget to add the income?
                   </Text>
                   <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
-                    Please add an income of at least{' '}
+                    {incomeFormReason === 'NEW_WALLET'
+                      ? `The newly created wallet "${incomeFormWalletName}" has 0 cash. Please add an income of at least `
+                      : `Wallet "${incomeFormWalletName}" has insufficient funds. Please add an income of at least `}
                     <Text style={{ fontWeight: Typography.weights.bold, color: theme.danger }}>
                       {formatCurrency(incomeMinRequired, currency)}
                     </Text>{' '}
-                    to cover your statement expense.
+                    to cover your statement expense so the transaction can be recorded.
                   </Text>
                 </View>
               </View>

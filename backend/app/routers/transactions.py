@@ -383,6 +383,10 @@ def bulk_import_transactions(
 ):
     user_id = current_user.id if current_user else None
     created_count = 0
+    skipped_count = 0
+
+    # Running balance map to prevent wallet balances from going below 0 during batch import
+    running_balances: dict[int, float] = {}
 
     for tx in payload.transactions:
         try:
@@ -397,6 +401,13 @@ def bulk_import_transactions(
                 first_w = db.query(Wallet).filter(Wallet.user_id == user_id).first() if user_id else db.query(Wallet).first()
                 if first_w:
                     wallet_id = first_w.id
+
+            if wallet_id and wallet_id not in running_balances:
+                target_wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
+                if target_wallet:
+                    running_balances[wallet_id] = WalletService.calculate_wallet_balance(db, target_wallet)
+                else:
+                    running_balances[wallet_id] = 0.0
 
             # Ensure category exists in categories table so it is saved in settings and db
             clean_cat = cat.strip() if cat else ""
@@ -431,13 +442,43 @@ def bulk_import_transactions(
                     user_id=user_id,
                 )
                 db.add(item)
+                if wallet_id and wallet_id in running_balances:
+                    running_balances[wallet_id] += amt
+                created_count += 1
+            elif t_type == "transfer":
+                to_wallet_id = tx.to_wallet_id
+                if wallet_id and wallet_id in running_balances:
+                    if amt > running_balances[wallet_id]:
+                        skipped_count += 1
+                        continue
+                    running_balances[wallet_id] -= amt
+
+                if to_wallet_id:
+                    if to_wallet_id not in running_balances:
+                        tw = db.query(Wallet).filter(Wallet.id == to_wallet_id).first()
+                        running_balances[to_wallet_id] = WalletService.calculate_wallet_balance(db, tw) if tw else 0.0
+                    running_balances[to_wallet_id] += amt
+
+                transfer_note = note if note else "Wallet Transfer"
+                item = Expense(
+                    amount=amt,
+                    category=cat or "Transfer",
+                    note=transfer_note,
+                    spent_on=d,
+                    payment_method=tx.payment_method or "Wallet Transfer",
+                    type="TRANSFER",
+                    wallet_id=wallet_id,
+                    to_wallet_id=to_wallet_id,
+                    user_id=user_id,
+                )
+                db.add(item)
+                created_count += 1
             else:
-                if wallet_id:
-                    target_wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
-                    if target_wallet:
-                        curr_balance = WalletService.calculate_wallet_balance(db, target_wallet)
-                        if amt > curr_balance:
-                            continue
+                if wallet_id and wallet_id in running_balances:
+                    if amt > running_balances[wallet_id]:
+                        skipped_count += 1
+                        continue
+                    running_balances[wallet_id] -= amt
 
                 item = Expense(
                     amount=amt,
@@ -450,15 +491,19 @@ def bulk_import_transactions(
                     user_id=user_id,
                 )
                 db.add(item)
-            created_count += 1
+                created_count += 1
         except Exception:
             continue
 
     db.commit()
+    msg = f"Successfully imported {created_count} transaction(s)."
+    if skipped_count > 0:
+        msg += f" {skipped_count} transaction(s) skipped due to insufficient wallet funds."
     return {
         "success": True,
         "imported": created_count,
-        "message": f"Successfully imported {created_count} transactions.",
+        "skipped": skipped_count,
+        "message": msg,
     }
 
 @router.put("/{tx_id}")
@@ -505,6 +550,21 @@ def update_transaction(
     d = tx_in.date or tx_in.spent_on or tx_in.received_on
 
     if expense:
+        new_amt = float(amt) if amt is not None else float(expense.amount)
+        new_w_id = tx_in.wallet_id if tx_in.wallet_id is not None else expense.wallet_id
+        is_transfer = (tx_in.type or expense.type or "").upper() == "TRANSFER"
+
+        if new_w_id and not is_transfer:
+            w_obj = db.query(Wallet).filter(Wallet.id == new_w_id).first()
+            if w_obj:
+                curr_bal = WalletService.calculate_wallet_balance(db, w_obj)
+                max_allowed = (curr_bal + float(expense.amount)) if new_w_id == expense.wallet_id else curr_bal
+                if new_amt > max_allowed:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Insufficient funds in wallet '{w_obj.name}'. Available balance is ₹{max_allowed:,.2f}, cannot set transaction amount to ₹{new_amt:,.2f}."
+                    )
+
         if amt is not None:
             expense.amount = float(amt)
         if cat is not None:
@@ -526,6 +586,20 @@ def update_transaction(
         e_type = "transfer" if (expense.type or "").upper() == "TRANSFER" else "expense"
         return serialize_unified(expense, e_type, db=db)
     else:
+        new_amt = float(amt) if amt is not None else float(income.amount)
+        new_w_id = tx_in.wallet_id if tx_in.wallet_id is not None else income.wallet_id
+
+        if income.wallet_id:
+            w_obj = db.query(Wallet).filter(Wallet.id == income.wallet_id).first()
+            if w_obj:
+                curr_bal = WalletService.calculate_wallet_balance(db, w_obj)
+                reduction = float(income.amount) if new_w_id != income.wallet_id else (float(income.amount) - new_amt)
+                if reduction > 0 and reduction > curr_bal:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cannot reduce income: wallet '{w_obj.name}' would fall below 0 (current balance is ₹{curr_bal:,.2f})."
+                    )
+
         if amt is not None:
             income.amount = float(amt)
         if cat is not None:

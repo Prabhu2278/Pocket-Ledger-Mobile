@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { parseCsvText } from '../utils/csvParser'
+import { parseCsvText, recalculateRowsWithRunningBalance } from '../utils/csvParser'
 import { money } from '../utils/formatCurrency'
 import { categoryApi } from '../api/categoryApi'
 import { walletApi } from '../api/walletApi'
@@ -87,10 +87,9 @@ export function CsvImportModal({
     if (rows.headerValidation?.isValid && rows.length > 0) {
       setParsedRows((prevRows) => {
         if (prevRows.length > 0 && prevRows.length < rows.length) {
-          return prevRows.map((prev) => {
-            const fresh = rows.find((r) => r.id === prev.id) || prev
-            return fresh
-          })
+          const remainingIds = new Set(prevRows.map((p) => p.id))
+          const remaining = rows.filter((r) => remainingIds.has(r.id))
+          return recalculateRowsWithRunningBalance(remaining, localWallets)
         }
         return rows
       })
@@ -253,40 +252,40 @@ export function CsvImportModal({
 
       const walletIdToAssign = created?.id || updatedWallets.find((w) => w.name.toLowerCase() === cleanName.toLowerCase())?.id
 
-      // Update all parsed rows referencing this wallet
-      setParsedRows((prev) =>
-        prev.map((r) => {
+      // Update all parsed rows referencing this wallet and recalculate running balances
+      setParsedRows((prev) => {
+        const mapped = prev.map((r) => {
           const rowWallet = (r.wallet_name || r.rawWallet || '').trim().toLowerCase()
           if (rowWallet === cleanName.toLowerCase() || (!r.wallet_id && r.isWalletMissing && rowWallet === cleanName.toLowerCase())) {
-            const newBal = 0
-            const isInsuff = r.type === 'expense' && newBal < r.amount
-            const missing = []
-            if (!r.date) missing.push('Date')
-            if (!r.type) missing.push('Type')
-            if (!r.category) missing.push('Category')
-            if (!r.amount || r.amount <= 0) missing.push('Amount')
-            if (isInsuff) missing.push('Insufficient Wallet Funds')
-
             return {
               ...r,
               wallet_id: walletIdToAssign,
               wallet_name: cleanName,
-              wallet_balance: 0,
               isWalletMissing: false,
-              isInsufficientBalance: isInsuff,
-              isValid: missing.length === 0,
-              missingFields: missing,
             }
           }
           return r
         })
-      )
+        return recalculateRowsWithRunningBalance(mapped, updatedWallets)
+      })
 
       if (showToast) {
         showToast(`Wallet "${cleanName}" created with 0 initial amount.`)
       }
 
+      const triggeringRow = walletPrompt.row
       setWalletPrompt(null)
+
+      // If the newly created wallet was for an expense, immediately chain Requirement 2: Add Income
+      if (triggeringRow && (triggeringRow.type === 'expense' || triggeringRow.type === 'transfer')) {
+        const targetRow = {
+          ...triggeringRow,
+          wallet_id: walletIdToAssign,
+          wallet_name: cleanName,
+          wallet_balance: 0,
+        }
+        handleOpenAddIncomeModal(targetRow)
+      }
     } catch (err) {
       setWalletPrompt((prev) => ({
         ...prev,
@@ -300,7 +299,7 @@ export function CsvImportModal({
   // Open "Did you forget to add an income?" modal for a Low Funds expense row
   const handleOpenAddIncomeModal = (row) => {
     const w = localWallets.find((item) => String(item.id) === String(row.wallet_id))
-    const currBal = Number(w?.current_balance ?? w?.balance ?? w?.initial_balance ?? row.wallet_balance ?? 0)
+    const currBal = Number(row.wallet_balance !== undefined ? row.wallet_balance : (w?.current_balance ?? w?.balance ?? w?.initial_balance ?? 0))
     const needed = Math.max(0, row.amount - currBal)
     const defaultCat = incomeCategoryOptions[0]?.name || 'Salary'
 
@@ -357,31 +356,8 @@ export function CsvImportModal({
         setLocalWallets(freshWallets)
       }
 
-      // Update parsed rows for this wallet with updated balance
-      setParsedRows((prev) =>
-        prev.map((r) => {
-          if (String(r.wallet_id) === String(addIncomePrompt.walletId)) {
-            const updatedBal = addIncomePrompt.walletBalance + amt
-            const isInsuff = r.type === 'expense' && updatedBal < r.amount
-            const missing = []
-            if (!r.date) missing.push('Date')
-            if (!r.type) missing.push('Type')
-            if (!r.category) missing.push('Category')
-            if (!r.wallet_id) missing.push('Wallet')
-            if (!r.amount || r.amount <= 0) missing.push('Amount')
-            if (isInsuff) missing.push('Insufficient Wallet Funds')
-
-            return {
-              ...r,
-              wallet_balance: updatedBal,
-              isInsufficientBalance: isInsuff,
-              isValid: missing.length === 0,
-              missingFields: missing,
-            }
-          }
-          return r
-        })
-      )
+      // Recalculate parsed rows for all wallets sequentially with updated balance
+      setParsedRows((prev) => recalculateRowsWithRunningBalance(prev, freshWallets))
 
       if (showToast) {
         showToast(`Income of ${money(amt, currency)} added to "${addIncomePrompt.walletName}"! Expense is now ready to import.`)
