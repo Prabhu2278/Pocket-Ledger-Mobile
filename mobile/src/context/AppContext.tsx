@@ -114,10 +114,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Fetch transactions for the active month
+  // Fetch transactions (all months so custom date ranges can search across months, matching Web)
   const refreshTransactions = useCallback(async () => {
     try {
-      const data = await api.transactions.getAll({ month_key: monthKey });
+      const data = await api.transactions.getAll({ limit: 5000 });
       const list = Array.isArray(data) ? data : [];
       list.sort((a, b) => {
         const dateA = a.date || '';
@@ -130,7 +130,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (err: any) {
       console.warn('[AppContext] Failed to fetch transactions:', err.message);
     }
-  }, [monthKey]);
+  }, []);
 
   // Fetch financial insights
   const refreshInsights = useCallback(async () => {
@@ -181,20 +181,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return wallets.reduce((sum, w) => sum + Number(w.current_balance ?? w.initial_balance ?? 0), 0);
   }, [wallets]);
 
+  // Transactions belonging to the currently selected month
+  const monthTransactions = useMemo(() => {
+    return transactions.filter((t) => (t.date || '').startsWith(monthKey));
+  }, [transactions, monthKey]);
+
   const totalIncome = useMemo(() => {
-    if (insights?.total_income !== undefined) return insights.total_income;
-    return transactions
-      .filter((t) => t.type === 'income')
+    if (insights?.total_income !== undefined && insights?.total_income !== null) {
+      return Number(insights.total_income);
+    }
+    return monthTransactions
+      .filter((t) => (t.type || '').toLowerCase() === 'income')
       .reduce((sum, t) => sum + Number(t.amount || t.amt || 0), 0);
-  }, [insights, transactions]);
+  }, [insights, monthTransactions]);
 
   const totalSpent = useMemo(() => {
-    if (insights?.total_spent !== undefined) return insights.total_spent;
-    if (insights?.total_expenses !== undefined) return insights.total_expenses;
-    return transactions
-      .filter((t) => t.type === 'expense')
+    if (insights?.total_spent !== undefined && insights?.total_spent !== null) {
+      return Number(insights.total_spent);
+    }
+    if (insights?.total_expenses !== undefined && insights?.total_expenses !== null) {
+      return Number(insights.total_expenses);
+    }
+    return monthTransactions
+      .filter((t) => (t.type || '').toLowerCase() === 'expense')
       .reduce((sum, t) => sum + Number(t.amount || t.amt || 0), 0);
-  }, [insights, transactions]);
+  }, [insights, monthTransactions]);
 
   const netCashFlow = useMemo(() => {
     return totalIncome - totalSpent;

@@ -125,12 +125,18 @@ export default function TransactionsScreen() {
         if (!isNaN(max) && Number(tx.amount || 0) > max) return false;
       }
 
-      // 6. Date Range
-      if (filters.startDate.trim() && tx.date) {
-        if (tx.date < filters.startDate.trim()) return false;
-      }
-      if (filters.endDate.trim() && tx.date) {
-        if (tx.date > filters.endDate.trim()) return false;
+      // 6. Date Range & Month Scope (matches Web behavior)
+      const hasCustomDateRange = Boolean(filters.startDate.trim() || filters.endDate.trim());
+      if (hasCustomDateRange) {
+        if (filters.startDate.trim() && tx.date) {
+          if (tx.date < filters.startDate.trim()) return false;
+        }
+        if (filters.endDate.trim() && tx.date) {
+          if (tx.date > filters.endDate.trim()) return false;
+        }
+      } else {
+        // Default to active month when no custom date range is selected
+        if (tx.date && !tx.date.startsWith(monthKey)) return false;
       }
 
       // 7. Search match
@@ -154,7 +160,7 @@ export default function TransactionsScreen() {
       // If same date, newest ID first
       return (b.id || 0) - (a.id || 0);
     });
-  }, [transactions, filters, search]);
+  }, [transactions, filters, search, monthKey]);
 
   // Summary metrics for KPI header cards
   const summaryIncome = useMemo(() => {
