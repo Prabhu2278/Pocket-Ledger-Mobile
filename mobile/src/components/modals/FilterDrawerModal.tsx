@@ -17,7 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { Wallet } from '../../types';
-import { Spacing, Radii, Typography } from '../../theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../theme';
 import { DatePickerModal } from './DatePickerModal';
 import { getCategoryColor } from '../../constants/categories';
 
@@ -55,6 +55,7 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
   currency,
 }) => {
   const { theme } = useTheme();
+  const { isTablet } = useResponsive();
 
   // State for category dropdown modal
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -85,7 +86,21 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
         <View style={styles.overlay}>
           <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
 
-          <View style={[styles.drawerContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.drawerContainer,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+              isTablet && {
+                maxWidth: 580,
+                width: '100%',
+                alignSelf: 'center',
+                borderRadius: Radii.xl,
+                borderBottomWidth: 1,
+                marginBottom: 'auto',
+                marginTop: 'auto',
+              },
+            ]}
+          >
             {/* Header */}
             <View style={[styles.header, { borderBottomColor: theme.border }]}>
               <View style={styles.headerLeft}>

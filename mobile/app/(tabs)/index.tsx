@@ -21,7 +21,7 @@ import { Header } from '../../src/components/ui/Header';
 import { CashFlowOverview } from '../../src/components/cards/CashFlowOverview';
 import { formatCurrency, formatCompactCurrency } from '../../src/utils/formatCurrency';
 import { getCategoryColor } from '../../src/constants/categories';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 // Helper for human-readable wallet type names
 function getWalletTypeLabel(type?: string) {
@@ -44,6 +44,7 @@ function getWalletIconName(type?: string): keyof typeof Ionicons.glyphMap {
 export default function DashboardScreen() {
   const router = useRouter();
   const { theme, isDark } = useTheme();
+  const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const {
     wallets,
     transactions,
@@ -232,7 +233,10 @@ export default function DashboardScreen() {
       <Header />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -251,6 +255,7 @@ export default function DashboardScreen() {
           <View
             style={[
               styles.kpiCard,
+              isTablet && { minWidth: '22%' },
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
@@ -268,6 +273,7 @@ export default function DashboardScreen() {
           <View
             style={[
               styles.kpiCard,
+              isTablet && { minWidth: '22%' },
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
@@ -285,6 +291,7 @@ export default function DashboardScreen() {
           <View
             style={[
               styles.kpiCard,
+              isTablet && { minWidth: '22%' },
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,
@@ -302,6 +309,7 @@ export default function DashboardScreen() {
           <View
             style={[
               styles.kpiCard,
+              isTablet && { minWidth: '22%' },
               {
                 backgroundColor: theme.surface,
                 borderColor: theme.border,

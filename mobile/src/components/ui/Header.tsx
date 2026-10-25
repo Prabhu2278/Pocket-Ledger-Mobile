@@ -9,7 +9,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { formatMonthLabel } from '../../utils/dateUtils';
-import { Spacing, Radii, Typography } from '../../theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../theme';
 
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -32,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const { monthState, goToPreviousMonth, goToNextMonth, isRefreshing, refreshAll } = useApp();
   const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
@@ -57,7 +58,13 @@ export const Header: React.FC<HeaderProps> = ({
   const userInitial = user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || 'P';
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: theme.surface, borderBottomColor: theme.border },
+        isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' },
+      ]}
+    >
       <View style={styles.topRow}>
         <View style={styles.brandContainer}>
           <View style={[styles.logoIcon, { backgroundColor: theme.primarySoft }]}>

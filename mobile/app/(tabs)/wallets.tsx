@@ -22,11 +22,12 @@ import { WalletCard } from '../../src/components/cards/WalletCard';
 import { EmptyState } from '../../src/components/ui/EmptyState';
 import { formatCurrency } from '../../src/utils/formatCurrency';
 import { Wallet } from '../../src/types';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 export default function WalletsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isTablet, contentMaxWidth, columns, cardWidth } = useResponsive();
   const {
     wallets,
     currency,
@@ -91,7 +92,10 @@ export default function WalletsScreen() {
       <Header title="Wallets & Accounts" showMonthSwitcher={false} subtitle="Multi-wallet liquidity balance" />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' },
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -165,15 +169,18 @@ export default function WalletsScreen() {
 
         {/* Wallets List */}
         {wallets.length > 0 ? (
-          wallets.map((wallet) => (
-            <WalletCard
-              key={wallet.id}
-              wallet={wallet}
-              currency={currency}
-              onEdit={handleEditWallet}
-              onDelete={handleDeleteWallet}
-            />
-          ))
+          <View style={columns > 1 ? { flexDirection: 'row', flexWrap: 'wrap', gap: 12 } : undefined}>
+            {wallets.map((wallet) => (
+              <View key={wallet.id} style={columns > 1 ? { width: cardWidth(12) } : undefined}>
+                <WalletCard
+                  wallet={wallet}
+                  currency={currency}
+                  onEdit={handleEditWallet}
+                  onDelete={handleDeleteWallet}
+                />
+              </View>
+            ))}
+          </View>
         ) : (
           <EmptyState
             icon="wallet-outline"

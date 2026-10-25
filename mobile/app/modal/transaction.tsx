@@ -28,13 +28,14 @@ import {
   TRANSFER_CATEGORY,
 } from '../../src/constants/categories';
 import { TransactionType } from '../../src/types';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 import { DatePickerModal } from '../../src/components/modals/DatePickerModal';
 
 export default function TransactionModal() {
   const router = useRouter();
   const params = useLocalSearchParams<{ txId?: string; txType?: string; initialType?: string }>();
   const { theme } = useTheme();
+  const { isTablet } = useResponsive();
   const {
     wallets,
     transactions,
@@ -199,7 +200,13 @@ export default function TransactionModal() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: 580, alignSelf: 'center', width: '100%' },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         {errorMessage ? (
           <View style={[styles.errorBox, { backgroundColor: theme.dangerSoft }]}>
             <Ionicons name="alert-circle" size={18} color={theme.danger} style={{ marginRight: 6 }} />

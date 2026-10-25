@@ -21,12 +21,13 @@ import { useTheme } from '../src/context/ThemeContext';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { api } from '../src/api/api';
-import { Spacing, Radii, Typography } from '../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../src/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
   const { theme } = useTheme();
+  const { isTablet } = useResponsive();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,7 +64,10 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && { maxWidth: 460, alignSelf: 'center', width: '100%' },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Brand Header */}

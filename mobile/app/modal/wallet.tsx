@@ -19,7 +19,7 @@ import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 const WALLET_TYPES = [
   { id: 'BANK', label: 'Bank Account', icon: 'business-outline' },
@@ -43,6 +43,7 @@ export default function WalletModal() {
   const params = useLocalSearchParams<{ walletId?: string }>();
   const { theme } = useTheme();
   const { wallets, currency, createWallet, updateWallet, deleteWallet } = useApp();
+  const { isTablet } = useResponsive();
 
   const isEditing = !!params.walletId;
   const existingWallet = isEditing
@@ -128,7 +129,13 @@ export default function WalletModal() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: 580, alignSelf: 'center', width: '100%' },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         {errorMessage ? (
           <View style={[styles.errorBox, { backgroundColor: theme.dangerSoft }]}>
             <Ionicons name="alert-circle" size={18} color={theme.danger} style={{ marginRight: 6 }} />

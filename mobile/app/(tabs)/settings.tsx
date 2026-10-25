@@ -32,81 +32,89 @@ import {
   CurrencyConfig,
 } from '../../src/utils/formatCurrency';
 import { api } from '../../src/api/api';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive, ThemeId } from '../../src/theme';
 
-const DARK_THEMES = [
+const THEME_DISPLAY_ITEMS = [
   {
-    id: 'dark',
-    name: 'Midnight Dark',
-    category: 'Fintech Slate',
-    description: 'Deep navy background with high-contrast text and glowing indigo accents.',
-    swatches: ['#818cf8', '#131926', '#34d399', '#f87171'],
+    id: 'system' as const,
+    name: 'System Automatic',
+    category: 'Dynamic Mode',
+    description: 'Automatically synchronizes with your device operating system Light or Dark appearance.',
+    icon: 'phone-portrait-outline' as const,
+    color: '#6366f1',
+    swatches: ['#0f172a', '#ffffff', '#6366f1', '#10b981', '#f43f5e'],
   },
   {
-    id: 'emerald',
-    name: 'Emerald Wealth',
-    category: 'Forest Jade',
-    description: 'Deep forest obsidian theme with glowing mint emerald and jade accents.',
-    swatches: ['#10b981', '#0b241c', '#34d399', '#f87171'],
-  },
-  {
-    id: 'ocean',
-    name: 'Ocean Sapphire',
-    category: 'Marine Cyan',
-    description: 'Deep oceanic blues with electric cyan highlights and high visual clarity.',
-    swatches: ['#0ea5e9', '#0b1e36', '#10b981', '#f43f5e'],
-  },
-  {
-    id: 'violet',
-    name: 'Royal Violet',
-    category: 'Cosmic Nebula',
-    description: 'Rich royal purple with vivid neon violet accents and deep nebula tones.',
-    swatches: ['#a855f7', '#18112d', '#10b981', '#f43f5e'],
-  },
-  {
-    id: 'sunset',
-    name: 'Sunset Amber',
-    category: 'Golden Bronze',
-    description: 'Warm twilight obsidian with vibrant amber and gold financial highlights.',
-    swatches: ['#f59e0b', '#20150d', '#10b981', '#f43f5e'],
-  },
-];
-
-const LIGHT_THEMES = [
-  {
-    id: 'light',
-    name: 'Crisp Daylight',
-    category: 'Clean Daylight',
+    id: 'light' as const,
+    name: 'Default Light',
+    category: 'Clean Daylight & Royal Indigo',
     description: 'Clean white cards with soft grayish-blue background and classic indigo tones.',
-    swatches: ['#4f46e5', '#ffffff', '#15803d', '#b91c1c'],
+    icon: 'sunny' as const,
+    color: '#4f46e5',
+    swatches: ['#f8fafc', '#ffffff', '#4f46e5', '#15803d', '#b91c1c'],
   },
   {
-    id: 'light-emerald',
-    name: 'Mint Meadow',
-    category: 'Spring Sage',
-    description: 'Fresh spring mint with soft jade borders and clean white surfaces.',
-    swatches: ['#059669', '#ffffff', '#10b981', '#dc2626'],
+    id: 'dark' as const,
+    name: 'Default Dark',
+    category: 'Midnight Dark & Fintech Slate',
+    description: 'Easy on the eyes in low light with deep slate backgrounds and vibrant contrast accents.',
+    icon: 'moon' as const,
+    color: '#818cf8',
+    swatches: ['#0a0e17', '#131926', '#818cf8', '#34d399', '#f87171'],
   },
   {
-    id: 'light-ocean',
-    name: 'Glacier Azure',
-    category: 'Breeze Sky',
-    description: 'Cool sky blue with arctic azure accents and high-contrast readability.',
-    swatches: ['#0284c7', '#ffffff', '#059669', '#e11d48'],
+    id: 'ocean' as const,
+    name: 'Ocean Blue',
+    category: 'Deep Sea Navy & Cyan Azure',
+    description: 'Deep oceanic blue tones with brilliant electric cyan highlights and high clarity.',
+    icon: 'water' as const,
+    color: '#0ea5e9',
+    swatches: ['#071626', '#0f2742', '#0ea5e9', '#10b981', '#f43f5e'],
   },
   {
-    id: 'light-violet',
-    name: 'Lavender Whisper',
-    category: 'Royal Lilac',
-    description: 'Gentle lavender background with rich royal purple accents and elegant cards.',
-    swatches: ['#7c3aed', '#ffffff', '#059669', '#e11d48'],
+    id: 'forest' as const,
+    name: 'Forest Green',
+    category: 'Evergreen Moss & Mint Emerald',
+    description: 'Rich organic evergreen forest theme with radiant mint emerald and jade accents.',
+    icon: 'leaf' as const,
+    color: '#10b981',
+    swatches: ['#071711', '#0f291e', '#10b981', '#34d399', '#fb7185'],
   },
   {
-    id: 'light-sunset',
-    name: 'Champagne Sand',
-    category: 'Warm Honey',
-    description: 'Warm ivory background with golden amber and warm bronze accents.',
-    swatches: ['#d97706', '#ffffff', '#059669', '#dc2626'],
+    id: 'sunset' as const,
+    name: 'Sunset Orange',
+    category: 'Warm Twilight & Solar Tangerine',
+    description: 'Warm twilight dusky obsidian with vibrant sunset amber, tangerine and golden accents.',
+    icon: 'flame' as const,
+    color: '#f97316',
+    swatches: ['#140c14', '#241424', '#f97316', '#10b981', '#ef4444'],
+  },
+  {
+    id: 'purple' as const,
+    name: 'Royal Purple',
+    category: 'Imperial Amethyst & Cosmic Violet',
+    description: 'Regal midnight purple with luminous imperial amethyst and lavender highlights.',
+    icon: 'sparkles' as const,
+    color: '#a855f7',
+    swatches: ['#0d0b1a', '#18142e', '#a855f7', '#10b981', '#f43f5e'],
+  },
+  {
+    id: 'rose' as const,
+    name: 'Rose Pink',
+    category: 'Velvet Noir & Rose Gold',
+    description: 'Velvet berry noir with elegant blush pink, rose gold, and soft blossom accents.',
+    icon: 'heart' as const,
+    color: '#f43f5e',
+    swatches: ['#160912', '#291222', '#f43f5e', '#10b981', '#ff2d55'],
+  },
+  {
+    id: 'amoled' as const,
+    name: 'AMOLED Black',
+    category: '100% Pitch Black & Neon Signals',
+    description: 'Pure #000000 true black for maximum battery power savings on OLED displays.',
+    icon: 'contrast' as const,
+    color: '#6366f1',
+    swatches: ['#000000', '#0a0a0a', '#6366f1', '#22c55e', '#ef4444'],
   },
 ];
 
@@ -128,7 +136,8 @@ type SettingsTab = 'profile' | 'appearance' | 'currency' | 'categories' | 'secur
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout, updateProfile } = useAuth();
-  const { isDark, toggleTheme, setThemeMode, theme, themeMode } = useTheme();
+  const { isDark, toggleTheme, setThemeMode, setThemeId, theme, themeId } = useTheme();
+  const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const { currency, updateCurrency, categories, refreshCategories } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
@@ -449,7 +458,13 @@ export default function SettingsScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* =====================================================================
             TAB 1: Profile Settings
             ===================================================================== */}
@@ -503,109 +518,107 @@ export default function SettingsScreen() {
         )}
 
         {/* =====================================================================
-            TAB 2: Themes (Dark & Light Theme Only)
+            TAB 2: Themes & Appearance
             ===================================================================== */}
         {activeTab === 'appearance' && (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <View style={styles.cardHeaderFlex}>
-              <Text style={[styles.cardHeading, { color: theme.text }]}>Appearance</Text>
+              <Text style={[styles.cardHeading, { color: theme.text }]}>Appearance & Theme</Text>
               <View style={[styles.pillBadge, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>2 Themes</Text>
+                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>{THEME_DISPLAY_ITEMS.length} Styles</Text>
               </View>
             </View>
 
             <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-              Choose your interface theme. Pocket Ledger supports tailored Dark and Light modes.
+              Personalize your Pocket Ledger interface with handcrafted themes, high-contrast dark palettes, and AMOLED black.
             </Text>
 
-            {/* Dark Theme Option */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                setThemeMode('dark');
-              }}
-              style={[
-                styles.themeCard,
-                {
-                  backgroundColor: '#0f172a',
-                  borderColor: isDark ? theme.primary : '#334155',
-                  borderWidth: isDark ? 2 : 1,
-                  borderLeftColor: '#3b82f6',
-                  borderLeftWidth: 5,
-                  marginBottom: Spacing.md,
-                },
-              ]}
-            >
-              <View style={styles.themeCardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: Radii.pill, backgroundColor: 'rgba(59, 130, 246, 0.2)', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="moon" size={18} color="#60a5fa" />
-                  </View>
-                  <View>
-                    <Text style={[styles.themeCardName, { color: '#ffffff' }]}>Dark Theme</Text>
-                    <Text style={[styles.themeCardCategory, { color: '#94a3b8' }]}>Deep Charcoal & Modern Blue</Text>
-                  </View>
-                </View>
-                {isDark ? (
-                  <View style={[styles.activeTag, { backgroundColor: theme.primary }]}>
-                    <Text style={[styles.activeTagText, { color: '#ffffff' }]}>Active</Text>
-                  </View>
-                ) : null}
-              </View>
+            {THEME_DISPLAY_ITEMS.map((item) => {
+              const isActive = themeId === item.id;
 
-              <View style={styles.swatchesRow}>
-                {['#0f172a', '#1e293b', '#3b82f6', '#10b981', '#f43f5e'].map((color, idx) => (
-                  <View key={idx} style={[styles.swatch, { backgroundColor: color, borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1 }]} />
-                ))}
-              </View>
-              <Text style={[styles.themeDesc, { color: '#94a3b8' }]}>
-                Easy on the eyes in low light with deep backgrounds and vibrant contrast accents.
-              </Text>
-            </TouchableOpacity>
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.8}
+                  onPress={() => setThemeId(item.id)}
+                  style={[
+                    styles.themeCard,
+                    {
+                      backgroundColor: item.id === 'system' ? theme.surfaceMuted : item.swatches[1],
+                      borderColor: isActive ? theme.primary : theme.border,
+                      borderWidth: isActive ? 2 : 1,
+                      borderLeftColor: item.color,
+                      borderLeftWidth: 5,
+                      marginBottom: Spacing.md,
+                    },
+                  ]}
+                >
+                  <View style={styles.themeCardHeader}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <View
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: Radii.pill,
+                          backgroundColor: `${item.color}25`,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons name={item.icon as any} size={20} color={item.color} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.themeCardName,
+                            { color: item.id === 'light' ? '#0f172a' : item.id === 'system' ? theme.text : '#ffffff' },
+                          ]}
+                        >
+                          {item.name}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.themeCardCategory,
+                            { color: item.id === 'light' ? '#64748b' : item.id === 'system' ? theme.textMuted : '#94a3b8' },
+                          ]}
+                        >
+                          {item.category}
+                        </Text>
+                      </View>
+                    </View>
+                    {isActive ? (
+                      <View style={[styles.activeTag, { backgroundColor: theme.primary }]}>
+                        <Text style={[styles.activeTagText, { color: '#ffffff' }]}>Active</Text>
+                      </View>
+                    ) : null}
+                  </View>
 
-            {/* Light Theme Option */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                setThemeMode('light');
-              }}
-              style={[
-                styles.themeCard,
-                {
-                  backgroundColor: '#ffffff',
-                  borderColor: !isDark ? theme.primary : '#e2e8f0',
-                  borderWidth: !isDark ? 2 : 1,
-                  borderLeftColor: '#2563eb',
-                  borderLeftWidth: 5,
-                },
-              ]}
-            >
-              <View style={styles.themeCardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <View style={{ width: 36, height: 36, borderRadius: Radii.pill, backgroundColor: 'rgba(37, 99, 235, 0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name="sunny" size={20} color="#2563eb" />
+                  <View style={styles.swatchesRow}>
+                    {item.swatches.map((color, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.swatch,
+                          {
+                            backgroundColor: color,
+                            borderColor: item.id === 'light' ? '#cbd5e1' : 'rgba(255,255,255,0.15)',
+                            borderWidth: 1,
+                          },
+                        ]}
+                      />
+                    ))}
                   </View>
-                  <View>
-                    <Text style={[styles.themeCardName, { color: '#0f172a' }]}>Light Theme</Text>
-                    <Text style={[styles.themeCardCategory, { color: '#64748b' }]}>Clean Slate & Vibrant Indigo</Text>
-                  </View>
-                </View>
-                {!isDark ? (
-                  <View style={[styles.activeTag, { backgroundColor: theme.primary }]}>
-                    <Text style={[styles.activeTagText, { color: '#ffffff' }]}>Active</Text>
-                  </View>
-                ) : null}
-              </View>
-
-              <View style={styles.swatchesRow}>
-                {['#f8fafc', '#ffffff', '#2563eb', '#10b981', '#ef4444'].map((color, idx) => (
-                  <View key={idx} style={[styles.swatch, { backgroundColor: color, borderColor: '#cbd5e1', borderWidth: 1 }]} />
-                ))}
-              </View>
-              <Text style={[styles.themeDesc, { color: '#64748b' }]}>
-                Crisp, modern, high-clarity daylight theme with rich card elevation and dark typography.
-              </Text>
-            </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.themeDesc,
+                      { color: item.id === 'light' ? '#64748b' : item.id === 'system' ? theme.textMuted : '#94a3b8' },
+                    ]}
+                  >
+                    {item.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
 

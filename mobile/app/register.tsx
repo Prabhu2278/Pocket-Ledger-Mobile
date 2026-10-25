@@ -20,12 +20,13 @@ import { useTheme } from '../src/context/ThemeContext';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
 import { api } from '../src/api/api';
-import { Spacing, Radii, Typography } from '../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../src/theme';
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
   const { theme } = useTheme();
+  const { isTablet } = useResponsive();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -72,7 +73,10 @@ export default function RegisterScreen() {
         style={styles.keyboardView}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            isTablet && { maxWidth: 460, alignSelf: 'center', width: '100%' },
+          ]}
           keyboardShouldPersistTaps="handled"
         >
           {/* Brand Header matching web Register.jsx */}

@@ -29,11 +29,12 @@ import { EmptyState } from '../../src/components/ui/EmptyState';
 import { api } from '../../src/api/api';
 import { Transaction } from '../../src/types';
 import { formatCurrency } from '../../src/utils/formatCurrency';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 export default function TransactionsScreen() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const {
     transactions,
     currency,
@@ -271,225 +272,227 @@ export default function TransactionsScreen() {
         activeFilterCount={activeFilterCount}
       />
 
-      {/* Search and Action Bar */}
-      <View style={styles.searchBarContainer}>
-        <View style={[styles.searchInputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Ionicons name="search-outline" size={18} color={theme.textMuted} style={{ marginRight: 8 }} />
-          <TextInput
-            placeholder="Search notes, categories, wallets..."
-            placeholderTextColor={theme.textMuted}
-            value={search}
-            onChangeText={setSearch}
-            style={[styles.searchInput, { color: theme.text }]}
-          />
-          {search ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color={theme.textMuted} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+      <View style={[{ flex: 1, width: '100%' }, isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
+        {/* Search and Action Bar */}
+        <View style={styles.searchBarContainer}>
+          <View style={[styles.searchInputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Ionicons name="search-outline" size={18} color={theme.textMuted} style={{ marginRight: 8 }} />
+            <TextInput
+              placeholder="Search notes, categories, wallets..."
+              placeholderTextColor={theme.textMuted}
+              value={search}
+              onChangeText={setSearch}
+              style={[styles.searchInput, { color: theme.text }]}
+            />
+            {search ? (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
-        {/* Filter Button with Funnel Icon and Badge (Matching Web filter-btn) */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setIsFilterModalOpen(true)}
-          style={[
-            styles.actionBtn,
-            styles.filterBtn,
-            {
-              backgroundColor: activeFilterCount > 0 ? theme.primarySoft : theme.surfaceMuted,
-              borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
-            },
-          ]}
-        >
-          <Ionicons
-            name="filter"
-            size={18}
-            color={activeFilterCount > 0 ? theme.primary : theme.text}
-          />
-          <Text
+          {/* Filter Button with Funnel Icon and Badge (Matching Web filter-btn) */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setIsFilterModalOpen(true)}
             style={[
-              styles.filterBtnText,
-              { color: activeFilterCount > 0 ? theme.primary : theme.text },
+              styles.actionBtn,
+              styles.filterBtn,
+              {
+                backgroundColor: activeFilterCount > 0 ? theme.primarySoft : theme.surfaceMuted,
+                borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
+              },
             ]}
           >
-            Filter
-          </Text>
-          {activeFilterCount > 0 ? (
-            <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
-            </View>
-          ) : null}
-        </TouchableOpacity>
-
-        {/* Export CSV Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={handleExportCsv}
-          disabled={exporting}
-          style={[styles.actionBtn, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
-        >
-          <Ionicons name="download-outline" size={18} color={theme.primary} />
-        </TouchableOpacity>
-
-        {/* Import CSV Button */}
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => router.push('/modal/csv')}
-          style={[styles.actionBtn, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
-        >
-          <Ionicons name="cloud-upload-outline" size={18} color={theme.info} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Active Filter Banner (Matching Web indicator) */}
-      {activeFilterCount > 0 ? (
-        <View style={[styles.activeFilterBanner, { backgroundColor: theme.primarySoft, borderColor: theme.primary }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-            <Ionicons name="funnel" size={14} color={theme.primary} />
-            <Text style={[styles.activeFilterText, { color: theme.text }]} numberOfLines={1}>
-              {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active • {filteredTransactions.length} result{filteredTransactions.length === 1 ? '' : 's'}
+            <Ionicons
+              name="filter"
+              size={18}
+              color={activeFilterCount > 0 ? theme.primary : theme.text}
+            />
+            <Text
+              style={[
+                styles.filterBtnText,
+                { color: activeFilterCount > 0 ? theme.primary : theme.text },
+              ]}
+            >
+              Filter
             </Text>
-          </View>
-          <TouchableOpacity onPress={handleResetFilters} activeOpacity={0.7}>
-            <Text style={[styles.clearFilterText, { color: theme.primary }]}>Clear All</Text>
+            {activeFilterCount > 0 ? (
+              <View style={[styles.filterBadge, { backgroundColor: theme.primary }]}>
+                <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+              </View>
+            ) : null}
+          </TouchableOpacity>
+
+          {/* Export CSV Button */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={handleExportCsv}
+            disabled={exporting}
+            style={[styles.actionBtn, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+          >
+            <Ionicons name="download-outline" size={18} color={theme.primary} />
+          </TouchableOpacity>
+
+          {/* Import CSV Button */}
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => router.push('/modal/csv')}
+            style={[styles.actionBtn, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}
+          >
+            <Ionicons name="cloud-upload-outline" size={18} color={theme.info} />
           </TouchableOpacity>
         </View>
-      ) : null}
 
-      {/* Quick Type Chips Bar */}
-      <View style={[styles.filtersContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <FilterChips
-          options={typeFilterOptions}
-          selectedId={filters.type}
-          onSelect={(type) => setFilters({ ...filters, type })}
-        />
-      </View>
+        {/* Active Filter Banner (Matching Web indicator) */}
+        {activeFilterCount > 0 ? (
+          <View style={[styles.activeFilterBanner, { backgroundColor: theme.primarySoft, borderColor: theme.primary }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <Ionicons name="funnel" size={14} color={theme.primary} />
+              <Text style={[styles.activeFilterText, { color: theme.text }]} numberOfLines={1}>
+                {activeFilterCount} filter{activeFilterCount === 1 ? '' : 's'} active • {filteredTransactions.length} result{filteredTransactions.length === 1 ? '' : 's'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={handleResetFilters} activeOpacity={0.7}>
+              <Text style={[styles.clearFilterText, { color: theme.primary }]}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
-      {/* Transaction List */}
-      <FlatList
-        data={filteredTransactions}
-        keyExtractor={(item) => `${item.type}-${item.id}`}
-        renderItem={({ item }) => (
-          <TransactionItem
-            transaction={item}
-            currency={currency}
-            onPress={() => handleTransactionPress(item)}
-            onLongPress={() => handleTransactionLongPress(item)}
+        {/* Quick Type Chips Bar */}
+        <View style={[styles.filtersContainer, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+          <FilterChips
+            options={typeFilterOptions}
+            selectedId={filters.type}
+            onSelect={(type) => setFilters({ ...filters, type })}
           />
-        )}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={refreshTransactions}
-            colors={[theme.primary]}
-            tintColor={theme.primary}
-          />
-        }
-        ListHeaderComponent={
-          (insights || transactions.length > 0) ? (
-            <View style={styles.kpiContainer}>
-              <View style={styles.kpiRow}>
-                {/* 1. Income Card */}
-                <View
-                  style={[
-                    styles.kpiCard,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderTopColor: theme.success,
-                      borderTopWidth: 2,
-                    },
-                  ]}
-                >
-                  <View style={styles.kpiHeaderRow}>
-                    <Ionicons name="arrow-down-circle" size={13} color={theme.success} />
-                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
-                  </View>
-                  <Text
-                    style={[styles.kpiValue, { color: theme.success }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                  >
-                    +{formatCurrency(summaryIncome, currency)}
-                  </Text>
-                </View>
+        </View>
 
-                {/* 2. Expenses Card */}
-                <View
-                  style={[
-                    styles.kpiCard,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderTopColor: theme.danger,
-                      borderTopWidth: 2,
-                    },
-                  ]}
-                >
-                  <View style={styles.kpiHeaderRow}>
-                    <Ionicons name="arrow-up-circle" size={13} color={theme.danger} />
-                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
-                  </View>
-                  <Text
-                    style={[styles.kpiValue, { color: theme.danger }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
+        {/* Transaction List */}
+        <FlatList
+          data={filteredTransactions}
+          keyExtractor={(item) => `${item.type}-${item.id}`}
+          renderItem={({ item }) => (
+            <TransactionItem
+              transaction={item}
+              currency={currency}
+              onPress={() => handleTransactionPress(item)}
+              onLongPress={() => handleTransactionLongPress(item)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={refreshTransactions}
+              colors={[theme.primary]}
+              tintColor={theme.primary}
+            />
+          }
+          ListHeaderComponent={
+            (insights || transactions.length > 0) ? (
+              <View style={styles.kpiContainer}>
+                <View style={styles.kpiRow}>
+                  {/* 1. Income Card */}
+                  <View
+                    style={[
+                      styles.kpiCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderTopColor: theme.success,
+                        borderTopWidth: 2,
+                      },
+                    ]}
                   >
-                    -{formatCurrency(summaryExpense, currency)}
-                  </Text>
-                </View>
+                    <View style={styles.kpiHeaderRow}>
+                      <Ionicons name="arrow-down-circle" size={13} color={theme.success} />
+                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
+                    </View>
+                    <Text
+                      style={[styles.kpiValue, { color: theme.success }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      +{formatCurrency(summaryIncome, currency)}
+                    </Text>
+                  </View>
 
-                {/* 3. Total Transactions Card */}
-                <View
-                  style={[
-                    styles.kpiCard,
-                    {
-                      backgroundColor: theme.surface,
-                      borderColor: theme.border,
-                      borderTopColor: theme.primary,
-                      borderTopWidth: 2,
-                    },
-                  ]}
-                >
-                  <View style={styles.kpiHeaderRow}>
-                    <Ionicons name="receipt-outline" size={13} color={theme.primary} />
-                    <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL TXNS</Text>
-                  </View>
-                  <Text
-                    style={[styles.kpiValue, { color: theme.primary }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
+                  {/* 2. Expenses Card */}
+                  <View
+                    style={[
+                      styles.kpiCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderTopColor: theme.danger,
+                        borderTopWidth: 2,
+                      },
+                    ]}
                   >
-                    {summaryTxCount}
-                  </Text>
+                    <View style={styles.kpiHeaderRow}>
+                      <Ionicons name="arrow-up-circle" size={13} color={theme.danger} />
+                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
+                    </View>
+                    <Text
+                      style={[styles.kpiValue, { color: theme.danger }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      -{formatCurrency(summaryExpense, currency)}
+                    </Text>
+                  </View>
+
+                  {/* 3. Total Transactions Card */}
+                  <View
+                    style={[
+                      styles.kpiCard,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: theme.border,
+                        borderTopColor: theme.primary,
+                        borderTopWidth: 2,
+                      },
+                    ]}
+                  >
+                    <View style={styles.kpiHeaderRow}>
+                      <Ionicons name="receipt-outline" size={13} color={theme.primary} />
+                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL TXNS</Text>
+                    </View>
+                    <Text
+                      style={[styles.kpiValue, { color: theme.primary }]}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                    >
+                      {summaryTxCount}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ) : undefined
-        }
-        ListEmptyComponent={
-          <EmptyState
-            icon="receipt-outline"
-            title="No transactions found"
-            description={
-              activeFilterCount > 0 || search
-                ? 'Try adjusting your search terms or clearing your filters.'
-                : 'Tap the + button to record your first transaction.'
-            }
-          />
-        }
-      />
+            ) : undefined
+          }
+          ListEmptyComponent={
+            <EmptyState
+              icon="receipt-outline"
+              title="No transactions found"
+              description={
+                activeFilterCount > 0 || search
+                  ? 'Try adjusting your search terms or clearing your filters.'
+                  : 'Tap the + button to record your first transaction.'
+              }
+            />
+          }
+        />
 
-      {/* Floating Action Button (+ Transaction) */}
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={() => router.push('/modal/transaction')}
-        style={[styles.fab, { backgroundColor: theme.primary }]}
-      >
-        <Ionicons name="add" size={28} color="#ffffff" />
-      </TouchableOpacity>
+        {/* Floating Action Button (+ Transaction) */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => router.push('/modal/transaction')}
+          style={[styles.fab, { backgroundColor: theme.primary }]}
+        >
+          <Ionicons name="add" size={28} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
 
       {/* Filter Drawer Modal */}
       <FilterDrawerModal

@@ -21,7 +21,7 @@ import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
 import { api } from '../../src/api/api';
 import { Category } from '../../src/types';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 const PALETTE = [
   '#b42c45', '#2563eb', '#15803d', '#b45309', '#0d7a6f',
@@ -32,6 +32,7 @@ export default function CategoryModal() {
   const router = useRouter();
   const { theme } = useTheme();
   const { categories, refreshCategories } = useApp();
+  const { isTablet } = useResponsive();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
@@ -97,7 +98,13 @@ export default function CategoryModal() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: 580, alignSelf: 'center', width: '100%' },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Create Category Form Card */}
         <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.cardTitle, { color: theme.text }]}>Add New Category</Text>

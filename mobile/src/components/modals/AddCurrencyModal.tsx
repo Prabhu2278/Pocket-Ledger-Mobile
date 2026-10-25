@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { POPULAR_CURRENCIES, CurrencyConfig } from '../../utils/formatCurrency';
-import { Spacing, Radii, Typography } from '../../theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../theme';
 
 const REGION_FILTERS = [
   { id: 'all', label: 'All Currencies' },
@@ -47,6 +47,7 @@ export const AddCurrencyModal: React.FC<AddCurrencyModalProps> = ({
   activeCurrency = 'INR',
 }) => {
   const { theme, isDark } = useTheme();
+  const { isTablet } = useResponsive();
   const [search, setSearch] = useState('');
   const [regionFilter, setRegionFilter] = useState('all');
 
@@ -80,7 +81,13 @@ export const AddCurrencyModal: React.FC<AddCurrencyModalProps> = ({
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View
+          style={[
+            styles.modalBox,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+            isTablet && { maxWidth: 520, width: '100%', alignSelf: 'center' },
+          ]}
+        >
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerInfo}>

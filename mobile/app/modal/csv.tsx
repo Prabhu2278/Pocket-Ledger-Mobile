@@ -31,7 +31,7 @@ import { getTodayIso } from '../../src/utils/dateUtils';
 import { INCOME_CATEGORIES } from '../../src/constants/categories';
 import { DatePickerModal } from '../../src/components/modals/DatePickerModal';
 import { CustomAlertDialog, AlertType } from '../../src/components/modals/CustomAlertDialog';
-import { Spacing, Radii, Typography } from '../../src/theme';
+import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 interface ParsedImportRow {
   id: string;
@@ -90,6 +90,7 @@ interface AlertDialogState {
 export default function CsvImportModal() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { isTablet } = useResponsive();
   const { wallets, createWallet, createTransaction, refreshAll, currency } = useApp();
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -976,7 +977,13 @@ export default function CsvImportModal() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          isTablet && { maxWidth: 680, alignSelf: 'center', width: '100%' },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header Hero Card */}
         <View style={[styles.headerCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <View style={[styles.iconBox, { backgroundColor: theme.primarySoft }]}>

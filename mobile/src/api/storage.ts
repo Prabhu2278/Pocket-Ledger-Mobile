@@ -69,16 +69,15 @@ export const storage = {
   },
 
   // 3. Theme Preference
-  async getTheme(): Promise<'light' | 'dark' | null> {
+  async getTheme(): Promise<string | null> {
     try {
-      const theme = await AsyncStorage.getItem(THEME_KEY);
-      return theme === 'light' || theme === 'dark' ? theme : null;
+      return await AsyncStorage.getItem(THEME_KEY);
     } catch {
       return null;
     }
   },
 
-  async setTheme(theme: 'light' | 'dark'): Promise<void> {
+  async setTheme(theme: string): Promise<void> {
     try {
       await AsyncStorage.setItem(THEME_KEY, theme);
     } catch (err) {
