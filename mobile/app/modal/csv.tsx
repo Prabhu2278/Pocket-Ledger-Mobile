@@ -87,6 +87,27 @@ interface AlertDialogState {
   };
 }
 
+const WALLET_TYPES = [
+  { id: 'BANK', label: 'Bank Account', icon: 'business-outline' },
+  { id: 'WALLET', label: 'UPI / Digital', icon: 'phone-portrait-outline' },
+  { id: 'CASH', label: 'Cash', icon: 'cash-outline' },
+  { id: 'CREDIT_CARD', label: 'Credit Card', icon: 'card-outline' },
+];
+
+const CURATED_WALLET_COLORS = [
+  '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#06b6d4',
+  '#6366f1', '#14b8a6', '#f43f5e', '#84cc16', '#e11d48', '#0ea5e9',
+];
+
+function getRandomUniqueColor(existingWallets: { color?: string }[]): string {
+  const used = new Set(existingWallets.map((w) => (w.color || '').toLowerCase()).filter(Boolean));
+  const available = CURATED_WALLET_COLORS.filter((c) => !used.has(c.toLowerCase()));
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+  return CURATED_WALLET_COLORS[0];
+}
+
 export default function CsvImportModal() {
   const router = useRouter();
   const { theme } = useTheme();
@@ -123,6 +144,18 @@ export default function CsvImportModal() {
   // -------------------------------------------------------------------------
   // Income Form Popup State (pops up when imported row has low funds or needs income)
   // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // Add Wallet Form Popup State (pops up when imported data has new wallet)
+  // -------------------------------------------------------------------------
+  const [showWalletForm, setShowWalletForm] = useState(false);
+  const [walletFormIssue, setWalletFormIssue] = useState<WalletIssue | null>(null);
+  const [walletFormName, setWalletFormName] = useState('');
+  const [walletFormType, setWalletFormType] = useState('BANK');
+  const [walletFormInitialBalance, setWalletFormInitialBalance] = useState('0');
+  const [walletFormColor, setWalletFormColor] = useState('#3b82f6');
+  const [walletFormLoading, setWalletFormLoading] = useState(false);
+  const [walletFormError, setWalletFormError] = useState<string | null>(null);
+
   const [showIncomeForm, setShowIncomeForm] = useState(false);
   const [incomeFormWallet, setIncomeFormWallet] = useState<Wallet | null>(null);
   const [incomeFormWalletName, setIncomeFormWalletName] = useState('');
@@ -620,115 +653,79 @@ export default function CsvImportModal() {
   };
 
   // ---------------------------------------------------------------------------
-  // Action: Handle New Wallet Flow (Income or 2-Step Expense Requirement)
+  // Action: Open Add Wallet Form when a new wallet is detected in imported data
   // ---------------------------------------------------------------------------
   const handleOpenNewWalletFlow = (issue: WalletIssue) => {
-    if (issue.type === 'NEW_WALLET_INCOME') {
-      // Income-only new wallet: Prompt user if they want to create the new wallet
-      showAlert({
-        type: 'confirm',
-        icon: 'wallet-outline',
-        title: 'New Wallet Detected',
-        subtitle: issue.walletName,
-        message: `The imported data has a wallet named "${issue.walletName}" that does not exist in the app.\n\nDo you want to create a new wallet for that?`,
-        secondaryButton: {
-          text: 'Cancel',
-          onPress: closeAlert,
-        },
-        primaryButton: {
-          text: 'Yes, Create Wallet',
-          variant: 'primary',
-          onPress: async () => {
-            closeAlert();
-            try {
-              setLoading(true);
-              await createWallet({
-                name: issue.walletName,
-                wallet_type: 'BANK',
-                initial_balance: 0,
-                color: '#10b981',
-              });
-              await refreshAll();
-              showAlert({
-                type: 'success',
-                icon: 'checkmark-circle',
-                title: 'Wallet Created',
-                subtitle: issue.walletName,
-                message: `Wallet "${issue.walletName}" has been created in your app and database! The incoming transaction (+${formatCurrency(issue.totalIncomeInBatch, currency)}) will now be deposited directly into it.`,
-                primaryButton: {
-                  text: 'OK',
-                  variant: 'primary',
-                  onPress: closeAlert,
-                },
-              });
-            } catch (err: any) {
-              showAlert({
-                type: 'danger',
-                title: 'Error',
-                message: err?.message || 'Failed to create new wallet',
-                primaryButton: { text: 'OK', onPress: closeAlert },
-              });
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
-      });
-    } else {
-      // New Wallet with Expense: Requires 2 Requirements:
-      // Requirement 1: Prompt user to create new wallet (initial balance 0 cash).
-      // Requirement 2: Detect 0 cash, alert low funds ("Did you forget to add the income?"),
-      // and pop up the Income Form to deposit funds before recording the expense!
-      showAlert({
-        type: 'warning',
-        icon: 'wallet-outline',
-        title: 'New Wallet Detected',
-        subtitle: `Requirement 1 of 2: ${issue.walletName}`,
-        message: `This is a new wallet "${issue.walletName}" that doesn't exist in the app wallets.\n\nDo you want to create a new wallet for this record?\n\nNote: Newly created wallets start with 0 cash, so an income will be required to cover the statement expenses.`,
-        secondaryButton: {
-          text: 'Cancel',
-          onPress: closeAlert,
-        },
-        primaryButton: {
-          text: 'Yes, Create Wallet',
-          variant: 'primary',
-          onPress: async () => {
-            closeAlert();
-            try {
-              setLoading(true);
-              const newW = await createWallet({
-                name: issue.walletName,
-                wallet_type: 'BANK',
-                initial_balance: 0,
-                color: '#10b981',
-              });
-              await refreshAll();
+    setWalletFormIssue(issue);
+    setWalletFormName(issue.walletName);
+    setWalletFormType('BANK');
+    setWalletFormInitialBalance('0');
+    setWalletFormColor(getRandomUniqueColor(wallets));
+    setWalletFormError(null);
+    setShowWalletForm(true);
+  };
 
-              // Requirement 2: Immediately pop up the Income Form with "Did you forget to add the income?"
-              const minNeeded = issue.shortageAmount > 0 ? issue.shortageAmount : issue.totalExpenseInBatch;
-              setIncomeFormWallet(newW);
-              setIncomeFormWalletName(issue.walletName);
-              setIncomeMinRequired(minNeeded);
-              setIncomeAmount(String(Math.ceil(minNeeded)));
-              setIncomeCategory('Salary');
-              setIncomeNote(`Opening Income Deposit for ${issue.walletName}`);
-              setIncomeDate(getTodayIso());
-              setIncomeFormReason('NEW_WALLET');
-              setIncomeFormError(null);
-              setShowIncomeForm(true);
-            } catch (err: any) {
-              showAlert({
-                type: 'danger',
-                title: 'Error',
-                message: err?.message || 'Failed to create new wallet',
-                primaryButton: { text: 'OK', onPress: closeAlert },
-              });
-            } finally {
-              setLoading(false);
-            }
-          },
+  const handleCreateWalletSubmit = async () => {
+    if (!walletFormName.trim()) {
+      setWalletFormError('Please enter an account name.');
+      return;
+    }
+
+    const initBal = parseFloat(walletFormInitialBalance);
+    if (isNaN(initBal) || initBal < 0) {
+      setWalletFormError('Please enter a valid initial balance (e.g. 0).');
+      return;
+    }
+
+    setWalletFormLoading(true);
+    setWalletFormError(null);
+
+    try {
+      const newW = await createWallet({
+        name: walletFormName.trim(),
+        wallet_type: walletFormType,
+        initial_balance: initBal,
+        color: walletFormColor,
+      });
+
+      await refreshAll();
+      setShowWalletForm(false);
+
+      const issue = walletFormIssue;
+      if (issue && issue.type === 'NEW_WALLET_EXPENSE') {
+        const netDeficit = issue.totalExpenseInBatch - (initBal + issue.totalIncomeInBatch);
+        if (netDeficit > 0) {
+          // Requirement 2: Open Income Form to deposit funds
+          setIncomeFormWallet(newW);
+          setIncomeFormWalletName(newW.name);
+          setIncomeMinRequired(netDeficit);
+          setIncomeAmount(String(Math.ceil(netDeficit)));
+          setIncomeCategory('Salary');
+          setIncomeNote(`Opening Income Deposit for ${newW.name}`);
+          setIncomeDate(getTodayIso());
+          setIncomeFormReason('NEW_WALLET');
+          setIncomeFormError(null);
+          setShowIncomeForm(true);
+          return;
+        }
+      }
+
+      showAlert({
+        type: 'success',
+        icon: 'checkmark-circle',
+        title: 'Wallet Created',
+        subtitle: newW.name,
+        message: `Wallet "${newW.name}" has been created! Matching transactions in your statement will now be recorded to it.`,
+        primaryButton: {
+          text: 'OK',
+          variant: 'primary',
+          onPress: closeAlert,
         },
       });
+    } catch (err: any) {
+      setWalletFormError(err?.message || 'Failed to create wallet.');
+    } finally {
+      setWalletFormLoading(false);
     }
   };
 
@@ -1302,6 +1299,239 @@ export default function CsvImportModal() {
           </View>
         ) : null}
       </ScrollView>
+
+      {/* ---------------------------------------------------------------------
+          Interactive Pop-up Add Wallet Form Modal
+          Pops up when imported data has a new wallet so the user can fill in
+          and customize the wallet details before recording transactions!
+          --------------------------------------------------------------------- */}
+      <Modal
+        visible={showWalletForm}
+        transparent
+        onRequestClose={() => {
+          if (!walletFormLoading) setShowWalletForm(false);
+        }}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => {
+              if (!walletFormLoading) setShowWalletForm(false);
+            }}
+          />
+
+          <View style={[styles.modalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { borderBottomColor: theme.border }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={[styles.modalIconBox, { backgroundColor: theme.primarySoft }]}>
+                  <Ionicons name="wallet" size={22} color={theme.primary} />
+                </View>
+                <View>
+                  <Text style={[styles.modalTitle, { color: theme.text }]}>Add New Wallet</Text>
+                  <Text style={[styles.modalSubtitle, { color: theme.textMuted }]}>
+                    Requirement for imported statement
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => !walletFormLoading && setShowWalletForm(false)}
+                style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceMuted }]}
+              >
+                <Ionicons name="close" size={18} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.incomeFormBody}>
+              {/* Context Banner */}
+              <View
+                style={[
+                  styles.promptHighlightBox,
+                  {
+                    backgroundColor: theme.primarySoft,
+                    borderColor: theme.primary,
+                  },
+                ]}
+              >
+                <Ionicons name="information-circle" size={20} color={theme.primary} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.promptHighlightText, { color: theme.text }]}>
+                    New Wallet Detected in Statement
+                  </Text>
+                  <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 2 }}>
+                    The imported statement references "{walletFormName}". Review and complete the form below to create this wallet.
+                  </Text>
+                </View>
+              </View>
+
+              {walletFormError ? (
+                <View style={[styles.resolutionErrorBox, { backgroundColor: theme.dangerSoft }]}>
+                  <Ionicons name="alert-circle" size={16} color={theme.danger} style={{ marginRight: 6 }} />
+                  <Text style={[styles.resolutionErrorText, { color: theme.danger }]}>{walletFormError}</Text>
+                </View>
+              ) : null}
+
+              {/* 1. Wallet Name Input */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.inputFieldLabel, { color: theme.textSecondary }]}>
+                  Wallet / Account Name *
+                </Text>
+                <TextInput
+                  style={[
+                    styles.dialogTextInput,
+                    {
+                      backgroundColor: theme.background,
+                      borderColor: theme.border,
+                      color: theme.text,
+                    },
+                  ]}
+                  value={walletFormName}
+                  onChangeText={(val) => {
+                    setWalletFormName(val);
+                    if (walletFormError) setWalletFormError(null);
+                  }}
+                  placeholder="e.g. HDFC Bank, My Wallet, Cash"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+
+              {/* 2. Wallet Type Selection Grid */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.inputFieldLabel, { color: theme.textSecondary }]}>
+                  Account Type *
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {WALLET_TYPES.map((t) => {
+                    const isSelected = walletFormType === t.id;
+                    return (
+                      <TouchableOpacity
+                        key={t.id}
+                        activeOpacity={0.7}
+                        onPress={() => setWalletFormType(t.id)}
+                        style={[
+                          {
+                            flex: 1,
+                            minWidth: '46%',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 8,
+                            paddingVertical: 10,
+                            paddingHorizontal: 12,
+                            borderRadius: Radii.md,
+                            borderWidth: 1.5,
+                            borderColor: isSelected ? theme.primary : theme.border,
+                            backgroundColor: isSelected ? theme.primarySoft : theme.background,
+                          },
+                        ]}
+                      >
+                        <Ionicons
+                          name={t.icon as any}
+                          size={18}
+                          color={isSelected ? theme.primary : theme.textMuted}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 13,
+                            fontWeight: isSelected ? Typography.weights.bold : Typography.weights.medium,
+                            color: isSelected ? theme.primary : theme.text,
+                          }}
+                        >
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* 3. Initial Balance Input */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.inputFieldLabel, { color: theme.textSecondary }]}>
+                  Initial Balance ({currency})
+                </Text>
+                <View
+                  style={[
+                    styles.amountInputContainer,
+                    { backgroundColor: theme.background, borderColor: theme.border },
+                  ]}
+                >
+                  <Text style={[styles.currencyPrefix, { color: theme.textSecondary }]}>{currency}</Text>
+                  <TextInput
+                    style={[styles.amountTextInput, { color: theme.text }]}
+                    value={walletFormInitialBalance}
+                    onChangeText={(val) => {
+                      setWalletFormInitialBalance(val);
+                      if (walletFormError) setWalletFormError(null);
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor={theme.textMuted}
+                  />
+                </View>
+              </View>
+
+              {/* 4. Wallet Color Selection */}
+              <View style={styles.formGroup}>
+                <Text style={[styles.inputFieldLabel, { color: theme.textSecondary }]}>
+                  Wallet Theme Color
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
+                  {CURATED_WALLET_COLORS.map((col) => {
+                    const isSelected = walletFormColor.toLowerCase() === col.toLowerCase();
+                    return (
+                      <TouchableOpacity
+                        key={col}
+                        activeOpacity={0.8}
+                        onPress={() => setWalletFormColor(col)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
+                          backgroundColor: col,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: isSelected ? 2.5 : 0,
+                          borderColor: theme.text,
+                        }}
+                      >
+                        {isSelected ? <Ionicons name="checkmark" size={16} color="#ffffff" /> : null}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setShowWalletForm(false)}
+                  disabled={walletFormLoading}
+                  style={[styles.modalCancelBtn, { borderColor: theme.border }]}
+                >
+                  <Text style={[styles.modalCancelBtnText, { color: theme.textSecondary }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={handleCreateWalletSubmit}
+                  disabled={walletFormLoading}
+                  style={[styles.modalPrimaryBtn, { backgroundColor: theme.primary }]}
+                >
+                  <Ionicons name="add" size={18} color="#ffffff" style={{ marginRight: 4 }} />
+                  <Text style={styles.modalPrimaryBtnText}>
+                    {walletFormLoading ? 'Creating...' : 'Create Wallet'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ---------------------------------------------------------------------
           Interactive Pop-up Income Form Modal
