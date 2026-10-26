@@ -114,7 +114,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
               onPress={() => onEdit(wallet)}
               style={[styles.actionBtn, { backgroundColor: theme.surfaceMuted }]}
             >
-              <Ionicons name="pencil-outline" size={15} color={theme.textSecondary} />
+              <Ionicons name="create-outline" size={15} color={theme.textSecondary} />
             </TouchableOpacity>
           ) : null}
 
