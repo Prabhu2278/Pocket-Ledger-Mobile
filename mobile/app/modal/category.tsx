@@ -20,13 +20,9 @@ import { useApp } from '../../src/context/AppContext';
 import { Input } from '../../src/components/ui/Input';
 import { Button } from '../../src/components/ui/Button';
 import { api } from '../../src/api/api';
+import { getUniqueCategoryColor } from '../../src/constants/categories';
 import { Category } from '../../src/types';
 import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
-
-const PALETTE = [
-  '#b42c45', '#2563eb', '#15803d', '#b45309', '#0d7a6f',
-  '#9333ea', '#ec4899', '#0284c7', '#6366f1', '#d97706',
-];
 
 export default function CategoryModal() {
   const router = useRouter();
@@ -36,7 +32,6 @@ export default function CategoryModal() {
 
   const [name, setName] = useState('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
-  const [color, setColor] = useState('#2563eb');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,12 +43,13 @@ export default function CategoryModal() {
 
     setError(null);
     setLoading(true);
+    const autoColor = getUniqueCategoryColor(categories);
 
     try {
       await api.categories.create({
         name: name.trim(),
         type,
-        color,
+        color: autoColor,
         icon: 'pricetag-outline',
       });
       setName('');
@@ -157,25 +153,6 @@ export default function CategoryModal() {
             leftIcon={<Ionicons name="pricetag-outline" size={18} color={theme.textMuted} />}
           />
 
-          {/* Color Palette */}
-          <Text style={[styles.swatchLabel, { color: theme.textSecondary }]}>Accent Color</Text>
-          <View style={styles.paletteRow}>
-            {PALETTE.map((c) => (
-              <TouchableOpacity
-                key={c}
-                activeOpacity={0.7}
-                onPress={() => setColor(c)}
-                style={[
-                  styles.swatch,
-                  { backgroundColor: c },
-                  color === c && { borderColor: theme.text, borderWidth: 3 },
-                ]}
-              >
-                {color === c ? <Ionicons name="checkmark" size={14} color="#ffffff" /> : null}
-              </TouchableOpacity>
-            ))}
-          </View>
-
           <Button
             title="+ Add Category"
             onPress={handleCreateCategory}
@@ -202,16 +179,6 @@ export default function CategoryModal() {
                 </Text>
               </View>
             </View>
-
-            {!cat.is_default ? (
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => handleDeleteCategory(cat)}
-                style={[styles.deleteBtn, { backgroundColor: theme.dangerSoft }]}
-              >
-                <Ionicons name="trash-outline" size={16} color={theme.danger} />
-              </TouchableOpacity>
-            ) : null}
           </View>
         ))}
       </ScrollView>

@@ -217,6 +217,13 @@ export const DonutBreakdownCard: React.FC<DonutBreakdownCardProps> = ({
               <Text style={styles.donutTooltipAmount}>
                 {type === 'income' ? '+' : '-'}{formatCurrency(selectedSlice.amount, currency)}
               </Text>
+              <View
+                style={
+                  tooltipCoords && tooltipCoords.y <= 65
+                    ? styles.tooltipArrowUp
+                    : styles.tooltipArrowDown
+                }
+              />
             </View>
           )}
         </Pressable>
@@ -394,28 +401,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  tooltipArrowDown: {
+    position: 'absolute',
+    bottom: -6,
+    left: '50%',
+    marginLeft: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#111827',
+  },
+  tooltipArrowUp: {
+    position: 'absolute',
+    top: -6,
+    left: '50%',
+    marginLeft: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: '#111827',
+  },
   donutTooltipDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 5,
+    elevation: 4,
   },
   donutTooltipTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#f8fafc',
-    flex: 1,
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#ffffff',
   },
   donutTooltipPct: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '600',
     color: '#94a3b8',
-    marginLeft: 4,
+    marginLeft: 'auto',
+    paddingLeft: 10,
   },
   donutTooltipAmount: {
-    fontSize: 14,
+    fontSize: 17,
     fontWeight: '800',
     color: '#ffffff',
     textAlign: 'right',
+    marginTop: 2,
   },
   legendContainer: {
     width: '100%',

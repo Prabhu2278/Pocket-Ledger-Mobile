@@ -33,6 +33,7 @@ import {
   CurrencyConfig,
 } from '../../src/utils/formatCurrency';
 import { api } from '../../src/api/api';
+import { getUniqueCategoryColor } from '../../src/constants/categories';
 import { Spacing, Radii, Typography, useResponsive, ThemeId } from '../../src/theme';
 
 const THEME_DISPLAY_ITEMS = [
@@ -276,11 +277,12 @@ export default function SettingsScreen() {
     }
     setCatSaving(true);
     setCatError('');
+    const autoColor = getUniqueCategoryColor(categories);
     try {
       await api.categories.create({
         name: newCatName.trim(),
         type: newCatType,
-        color: newCatColor,
+        color: autoColor,
       });
       await refreshCategories();
       setIsCategoryModalOpen(false);
@@ -707,15 +709,6 @@ export default function SettingsScreen() {
                       <Text style={[styles.catTypeTagText, { color: theme.textMuted }]}>{cat.type}</Text>
                     </View>
                   </View>
-
-                  {!cat.is_default && (
-                    <TouchableOpacity
-                      onPress={() => handleDeleteCategory(cat.id, cat.name)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                    </TouchableOpacity>
-                  )}
                 </View>
               ))}
             </View>
@@ -857,23 +850,6 @@ export default function SettingsScreen() {
                 >
                   <Text style={{ color: newCatType === 'income' ? '#ffffff' : theme.textSecondary, fontWeight: '700' }}>Income</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Color</Text>
-              <View style={styles.colorSwatchesRow}>
-                {PRESET_COLORS.map((col) => (
-                  <TouchableOpacity
-                    key={col}
-                    onPress={() => setNewCatColor(col)}
-                    style={[
-                      styles.colorDotBtn,
-                      { backgroundColor: col },
-                      newCatColor === col && { borderWidth: 2.5, borderColor: '#ffffff' },
-                    ]}
-                  />
-                ))}
               </View>
             </View>
 
