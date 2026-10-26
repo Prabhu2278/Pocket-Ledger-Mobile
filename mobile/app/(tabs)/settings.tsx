@@ -3,7 +3,7 @@
 // Faithfully matching frontend/src/pages/Settings.jsx
 // ---------------------------------------------------------------------------
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
@@ -73,12 +73,19 @@ type SettingsTab = 'profile' | 'appearance' | 'currency' | 'categories' | 'secur
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
   const { user, logout, updateProfile } = useAuth();
   const { isDark, toggleTheme, setThemeMode, setThemeId, theme, themeId } = useTheme();
   const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const { currency, updateCurrency, categories, refreshCategories } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+
+  useEffect(() => {
+    if (params.tab && ['profile', 'appearance', 'currency', 'categories', 'security'].includes(params.tab)) {
+      setActiveTab(params.tab as SettingsTab);
+    }
+  }, [params.tab]);
 
   // Profile tab state
   const [fullName, setFullName] = useState(user?.full_name || '');

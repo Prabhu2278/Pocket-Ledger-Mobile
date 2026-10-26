@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [showMonthPicker, setShowMonthPicker] = React.useState(false);
 
   const handleAvatarPress = () => {
-    setShowLogoutConfirm(true);
+    router.navigate({ pathname: '/(tabs)/settings', params: { tab: 'profile' } });
   };
 
   const doLogout = async () => {
