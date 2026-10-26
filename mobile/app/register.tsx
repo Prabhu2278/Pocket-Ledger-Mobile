@@ -146,9 +146,14 @@ export default function RegisterScreen() {
 
             <Input
               label="Full Name"
-              placeholder="e.g. Prabhu"
+              placeholder="Enter your full name"
               value={name}
               onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+              autoComplete="off"
+              textContentType="name"
+              importantForAutofill="no"
               leftIcon={<Ionicons name="person-outline" size={18} color={theme.textMuted} />}
             />
 
@@ -158,6 +163,9 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              autoComplete="off"
+              textContentType="none"
+              importantForAutofill="no"
               value={email}
               onChangeText={setEmail}
               leftIcon={<Ionicons name="mail-outline" size={18} color={theme.textMuted} />}
@@ -167,6 +175,11 @@ export default function RegisterScreen() {
               label="Password"
               placeholder="Minimum 6 characters"
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              importantForAutofill="no"
               value={password}
               onChangeText={setPassword}
               leftIcon={<Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />}
@@ -176,6 +189,11 @@ export default function RegisterScreen() {
               label="Confirm Password"
               placeholder="Repeat your password"
               secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="new-password"
+              textContentType="newPassword"
+              importantForAutofill="no"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               leftIcon={<Ionicons name="checkmark-done-outline" size={18} color={theme.textMuted} />}
