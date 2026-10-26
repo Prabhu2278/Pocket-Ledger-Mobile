@@ -28,15 +28,74 @@ const WALLET_TYPES = [
   { id: 'CREDIT_CARD', label: 'Credit Card', icon: 'card-outline' },
 ];
 
-const COLOR_OPTIONS = [
-  '#10b981', // Emerald
-  '#2563eb', // Sapphire
+const CURATED_WALLET_COLORS = [
+  '#3b82f6', // Bright Blue
+  '#10b981', // Emerald Green
   '#8b5cf6', // Violet
+  '#f59e0b', // Amber / Orange
   '#ec4899', // Pink
-  '#f59e0b', // Amber
-  '#06b6d4', // Cyan
-  '#64748b', // Slate
+  '#06b6d4', // Cyan / Teal
+  '#6366f1', // Indigo
+  '#14b8a6', // Teal
+  '#f43f5e', // Rose
+  '#84cc16', // Lime
+  '#e11d48', // Crimson
+  '#0ea5e9', // Sky Blue
+  '#d946ef', // Fuchsia
+  '#f97316', // Tangerine
+  '#a855f7', // Purple
+  '#22c55e', // Green
+  '#0284c7', // Ocean Blue
+  '#7c3aed', // Deep Violet
+  '#db2777', // Magenta
+  '#059669', // Mint
+  '#ca8a04', // Golden
+  '#4f46e5', // Royal Indigo
 ];
+
+// Helper to convert HSL to Hex for infinite distinct fallback colors
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const col = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * col)
+      .toString(16)
+      .padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+// Generate a random color that does not already exist in any other wallet
+function getRandomUniqueColor(existingWallets: { color?: string }[]): string {
+  const usedColors = new Set(
+    existingWallets
+      .map((w) => (w.color || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  const availableCurated = CURATED_WALLET_COLORS.filter(
+    (c) => !usedColors.has(c.toLowerCase())
+  );
+
+  if (availableCurated.length > 0) {
+    const randomIndex = Math.floor(Math.random() * availableCurated.length);
+    return availableCurated[randomIndex];
+  }
+
+  // Fallback: Generate a random pleasant HSL color that is not already used
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const hue = Math.floor(Math.random() * 360);
+    const hex = hslToHex(hue, 75, 50);
+    if (!usedColors.has(hex.toLowerCase())) {
+      return hex;
+    }
+  }
+
+  return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+}
 
 export default function WalletModal() {
   const router = useRouter();
@@ -55,7 +114,13 @@ export default function WalletModal() {
   const [initialBalance, setInitialBalance] = useState(
     existingWallet?.initial_balance !== undefined ? String(existingWallet.initial_balance) : '0'
   );
-  const [color, setColor] = useState(existingWallet?.color || '#10b981');
+  // Auto-assign random unique color that does not already exist
+  const [color] = useState<string>(() => {
+    if (existingWallet?.color) {
+      return existingWallet.color;
+    }
+    return getRandomUniqueColor(wallets);
+  });
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -204,30 +269,6 @@ export default function WalletModal() {
           leftIcon={<Ionicons name="cash-outline" size={18} color={theme.textMuted} />}
         />
 
-        {/* 4. Color Swatches */}
-        <View style={styles.sectionGroup}>
-          <Text style={[styles.inputLabel, { color: theme.textSecondary }]}>Theme Color</Text>
-          <View style={styles.swatchRow}>
-            {COLOR_OPTIONS.map((c) => {
-              const isSelected = color === c;
-              return (
-                <TouchableOpacity
-                  key={c}
-                  activeOpacity={0.7}
-                  onPress={() => setColor(c)}
-                  style={[
-                    styles.swatch,
-                    { backgroundColor: c },
-                    isSelected && { borderColor: theme.text, borderWidth: 3 },
-                  ]}
-                >
-                  {isSelected ? <Ionicons name="checkmark" size={16} color="#ffffff" /> : null}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
         {/* Save & Delete Buttons */}
         <Button
           title={isEditing ? 'Update Account' : 'Create Account'}
@@ -295,17 +336,5 @@ const styles = StyleSheet.create({
   },
   typeLabel: {
     fontSize: Typography.sizes.xs,
-  },
-  swatchRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    paddingVertical: 4,
-  },
-  swatch: {
-    width: 38,
-    height: 38,
-    borderRadius: Radii.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
