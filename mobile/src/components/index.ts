@@ -9,6 +9,7 @@ export * from './ui/FilterChips';
 export * from './ui/Header';
 export * from './ui/Input';
 export * from './ui/LoadingView';
+export * from './ui/AmbientMesh';
 
 // Cards
 export * from './cards/CashFlowOverview';

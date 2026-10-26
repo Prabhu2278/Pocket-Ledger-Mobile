@@ -25,7 +25,7 @@ import {
 } from '../types';
 
 // Resolve Backend Base URL based on environment, platform, and device type
-const DEFAULT_LAN_URL = 'http://192.168.1.37:9000';
+const DEFAULT_LAN_URL = 'http://192.168.1.41:9000';
 
 export function getApiBaseUrl(): string {
   // If running in a web browser on desktop, connect to localhost:9000
@@ -37,13 +37,18 @@ export function getApiBaseUrl(): string {
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest?.debuggerHost || '';
   const hostIp = hostUri ? hostUri.split(':')[0] : null;
 
+  // When running via Expo Go on device, the hostUri is the most reliable live IP of the host machine
+  if (hostIp && !hostIp.includes('127.0.0.1') && !hostIp.includes('localhost')) {
+    return `http://${hostIp}:9000`;
+  }
+
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl && envUrl.trim() !== '') {
     let cleanUrl = envUrl.trim().replace(/\/$/, '');
 
     // Never use 10.0.2.2 or localhost on a physical mobile device
     if (cleanUrl.includes('10.0.2.2') || cleanUrl.includes('localhost') || cleanUrl.includes('127.0.0.1')) {
-      const targetIp = hostIp || '192.168.1.37';
+      const targetIp = hostIp || '192.168.1.41';
       cleanUrl = cleanUrl
         .replace('10.0.2.2', targetIp)
         .replace('localhost', targetIp)
@@ -69,7 +74,7 @@ export function setOnUnauthorizedHandler(handler: () => void) {
   onUnauthorizedHandler = handler;
 }
 
-// Low-level fetch wrapper with automatic JWT headers and JSON error parsing
+// Low-level fetch wrapper with automatic JWT headers, JSON error parsing, and timeout
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = await storage.getToken();
   const headers: Record<string, string> = {
@@ -86,13 +91,22 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${getApiBaseUrl()}${cleanEndpoint}`;
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}${cleanEndpoint}`;
+
+  const controller = new AbortController();
+  const timeoutMs = 12000;
+  const timeoutId = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
 
   try {
     const res = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (res.status === 401) {
       if (onUnauthorizedHandler) {
@@ -113,6 +127,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
     return await res.json();
   } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      const timeoutErr = new Error(`Connection timed out reaching ${baseUrl}. Please check that your phone is on the same Wi-Fi and backend is running.`);
+      console.warn(`[API] Timeout calling ${endpoint}:`, timeoutErr.message);
+      throw timeoutErr;
+    }
     console.warn(`[API] Error calling ${endpoint}:`, err?.message || err);
     throw err;
   }

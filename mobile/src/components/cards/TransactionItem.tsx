@@ -37,7 +37,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   const getAmountColor = () => {
     if (isIncome) return theme.success;
     if (isTransfer) return theme.info;
-    return theme.text;
+    return theme.danger;
   };
 
   const getAmountPrefix = () => {

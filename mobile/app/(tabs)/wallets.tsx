@@ -15,9 +15,11 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/ui/Header';
+import { AmbientMesh } from '../../src/components/ui/AmbientMesh';
 import { WalletCard } from '../../src/components/cards/WalletCard';
 import { EmptyState } from '../../src/components/ui/EmptyState';
 import { formatCurrency } from '../../src/utils/formatCurrency';
@@ -26,7 +28,7 @@ import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 export default function WalletsScreen() {
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { isTablet, contentMaxWidth, columns, cardWidth } = useResponsive();
   const {
     wallets,
@@ -89,6 +91,7 @@ export default function WalletsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <AmbientMesh />
       <Header title="Wallets & Accounts" showMonthSwitcher={false} subtitle="Multi-wallet liquidity balance" />
 
       <ScrollView
@@ -106,45 +109,51 @@ export default function WalletsScreen() {
           />
         }
       >
-        {/* Total Liquidity Hero Card */}
+        {/* Total Liquidity Hero Card - Soft Pastel Royal Indigo */}
         <View
           style={[
             styles.heroCard,
             {
-              backgroundColor: theme.surface,
-              borderColor: theme.border,
+              backgroundColor: isDark ? '#14182e' : '#eef2ff',
+              borderColor: isDark ? '#3730a3' : '#c7d2fe',
+              borderWidth: 1.5,
             },
           ]}
         >
           <View style={styles.heroHeader}>
-            <View style={[styles.heroIconBox, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="card-outline" size={20} color={theme.primary} />
-            </View>
-            <Text style={[styles.heroLabel, { color: theme.textSecondary }]}>
+            <LinearGradient
+              colors={['#4f46e5', '#6366f1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroIconBox}
+            >
+              <Ionicons name="card-outline" size={18} color="#ffffff" />
+            </LinearGradient>
+            <Text style={[styles.heroLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
               Total Net Portfolio
             </Text>
           </View>
-          <Text style={[styles.heroAmount, { color: theme.text }]}>
+          <Text style={[styles.heroAmount, { color: isDark ? '#ffffff' : '#312e81' }]}>
             {formatCurrency(totalBalance, currency)}
           </Text>
 
           {/* Quick Sub-allocations */}
-          <View style={[styles.allocationsRow, { borderTopColor: theme.borderSubtle }]}>
+          <View style={[styles.allocationsRow, { borderTopColor: isDark ? '#3730a3' : '#c7d2fe' }]}>
             <View style={styles.allocItem}>
-              <Text style={[styles.allocLabel, { color: theme.textMuted }]}>Bank</Text>
-              <Text style={[styles.allocValue, { color: theme.text }]}>
+              <Text style={[styles.allocLabel, { color: isDark ? '#a5b4fc' : '#4f46e5' }]}>Bank</Text>
+              <Text style={[styles.allocValue, { color: isDark ? '#ffffff' : '#312e81' }]}>
                 {formatCurrency(bankTotal, currency, { compact: true })}
               </Text>
             </View>
             <View style={styles.allocItem}>
-              <Text style={[styles.allocLabel, { color: theme.textMuted }]}>UPI / Digital</Text>
-              <Text style={[styles.allocValue, { color: theme.text }]}>
+              <Text style={[styles.allocLabel, { color: isDark ? '#c4b5fd' : '#7c3aed' }]}>UPI / Digital</Text>
+              <Text style={[styles.allocValue, { color: isDark ? '#ffffff' : '#5b21b6' }]}>
                 {formatCurrency(digitalTotal, currency, { compact: true })}
               </Text>
             </View>
             <View style={styles.allocItem}>
-              <Text style={[styles.allocLabel, { color: theme.textMuted }]}>Cash</Text>
-              <Text style={[styles.allocValue, { color: theme.text }]}>
+              <Text style={[styles.allocLabel, { color: isDark ? '#6ee7b7' : '#059669' }]}>Cash</Text>
+              <Text style={[styles.allocValue, { color: isDark ? '#ffffff' : '#065f46' }]}>
                 {formatCurrency(cashTotal, currency, { compact: true })}
               </Text>
             </View>
@@ -158,12 +167,18 @@ export default function WalletsScreen() {
           </Text>
 
           <TouchableOpacity
-            activeOpacity={0.7}
+            activeOpacity={0.8}
             onPress={() => router.push('/modal/wallet')}
-            style={[styles.addAccountBtn, { backgroundColor: theme.primary }]}
           >
-            <Ionicons name="add" size={16} color="#ffffff" style={{ marginRight: 4 }} />
-            <Text style={styles.addAccountBtnText}>Add Account</Text>
+            <LinearGradient
+              colors={['#4f46e5', '#6366f1']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.addAccountBtn}
+            >
+              <Ionicons name="add" size={16} color="#ffffff" style={{ marginRight: 4 }} />
+              <Text style={styles.addAccountBtnText}>Add Account</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 

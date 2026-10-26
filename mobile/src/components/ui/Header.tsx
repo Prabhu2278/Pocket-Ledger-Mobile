@@ -5,6 +5,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../context/ThemeContext';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -31,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeFilterCount = 0,
 }) => {
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const { monthState, goToPreviousMonth, goToNextMonth, isRefreshing, refreshAll } = useApp();
   const { user, logout } = useAuth();
@@ -67,9 +68,14 @@ export const Header: React.FC<HeaderProps> = ({
     >
       <View style={styles.topRow}>
         <View style={styles.brandContainer}>
-          <View style={[styles.logoIcon, { backgroundColor: theme.primarySoft }]}>
-            <Ionicons name="wallet" size={20} color={theme.primary} />
-          </View>
+          <LinearGradient
+            colors={['#6366f1', '#4f46e5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.logoIcon}
+          >
+            <Ionicons name="receipt-outline" size={20} color="#ffffff" />
+          </LinearGradient>
           <View>
             <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
             {subtitle ? (
@@ -86,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({
               style={[
                 styles.iconButton,
                 {
-                  backgroundColor: activeFilterCount > 0 ? theme.primarySoft : theme.surfaceMuted,
+                  backgroundColor: activeFilterCount > 0 ? theme.primarySoft : isDark ? theme.surfaceMuted : '#f1f5f9',
                   borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
                   borderWidth: activeFilterCount > 0 ? 1 : 0,
                 },
@@ -108,7 +114,7 @@ export const Header: React.FC<HeaderProps> = ({
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={refreshAll}
-            style={[styles.iconButton, { backgroundColor: theme.surfaceMuted }]}
+            style={[styles.iconButton, { backgroundColor: isDark ? theme.surfaceMuted : '#f1f5f9' }]}
           >
             <Ionicons
               name="refresh-outline"
@@ -120,26 +126,46 @@ export const Header: React.FC<HeaderProps> = ({
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleAvatarPress}
-            style={[styles.avatar, { backgroundColor: theme.primary }]}
           >
-            <Text style={styles.avatarText}>{userInitial}</Text>
+            <LinearGradient
+              colors={['#4f46e5', '#7c3aed']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.avatar}
+            >
+              <Text style={styles.avatarText}>{userInitial}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
 
       {showMonthSwitcher ? (
-        <View style={[styles.monthSwitcher, { backgroundColor: theme.surfaceMuted, borderColor: theme.border }]}>
+        <View
+          style={[
+            styles.monthSwitcher,
+            {
+              backgroundColor: isDark ? theme.surfaceMuted : '#eef2ff',
+              borderColor: isDark ? theme.border : '#c7d2fe',
+              borderWidth: 1,
+            },
+          ]}
+        >
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={goToPreviousMonth}
-            style={styles.monthArrow}
+            style={[
+              styles.monthArrow,
+              !isDark && { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
+            ]}
           >
-            <Ionicons name="chevron-back" size={18} color={theme.text} />
+            <Ionicons name="chevron-back" size={17} color={isDark ? theme.text : '#4f46e5'} />
           </TouchableOpacity>
 
           <View style={styles.monthLabelContainer}>
-            <Ionicons name="calendar-outline" size={15} color={theme.primary} style={{ marginRight: 6 }} />
-            <Text style={[styles.monthLabel, { color: theme.text }]}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? theme.primarySoft : '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+              <Ionicons name="calendar-outline" size={14} color="#4f46e5" />
+            </View>
+            <Text style={[styles.monthLabel, { color: isDark ? theme.text : '#312e81', fontWeight: '800' }]}>
               {formatMonthLabel(monthState)}
             </Text>
           </View>
@@ -147,9 +173,12 @@ export const Header: React.FC<HeaderProps> = ({
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={goToNextMonth}
-            style={styles.monthArrow}
+            style={[
+              styles.monthArrow,
+              !isDark && { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
+            ]}
           >
-            <Ionicons name="chevron-forward" size={18} color={theme.text} />
+            <Ionicons name="chevron-forward" size={17} color={isDark ? theme.text : '#4f46e5'} />
           </TouchableOpacity>
         </View>
       ) : null}

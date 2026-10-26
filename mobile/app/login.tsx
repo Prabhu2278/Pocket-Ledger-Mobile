@@ -100,6 +100,20 @@ export default function LoginScreen() {
               },
             ]}
           >
+            {/* Top Accent Gradient Bar matching screenshot */}
+            <View style={[styles.topAccentBar, { backgroundColor: theme.primary }]} />
+
+            {/* Welcome Back Pill matching web screenshot */}
+            <View style={[styles.welcomePill, { backgroundColor: theme.primarySoft }]}>
+              <View style={[styles.welcomeDot, { backgroundColor: theme.primary }]} />
+              <Text style={[styles.welcomePillText, { color: theme.primary }]}>WELCOME BACK</Text>
+            </View>
+
+            <Text style={[styles.cardTitle, { color: theme.text }]}>Sign in to Pocket Ledger</Text>
+            <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
+              Enter your credentials to access your financial dashboard.
+            </Text>
+
             {errorMessage ? (
               <View style={[styles.errorBanner, { backgroundColor: theme.dangerSoft }]}>
                 <Ionicons name="alert-circle" size={18} color={theme.danger} style={{ marginRight: 6 }} />
@@ -110,7 +124,7 @@ export default function LoginScreen() {
             ) : null}
 
             <Input
-              label="Email Address"
+              label="Email address"
               placeholder="you@example.com"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -130,7 +144,7 @@ export default function LoginScreen() {
             />
 
             <Button
-              title="Sign In"
+              title="Sign in →"
               onPress={handleLogin}
               loading={loading}
               size="lg"
@@ -142,9 +156,16 @@ export default function LoginScreen() {
                 Don't have an account?{' '}
               </Text>
               <TouchableOpacity onPress={() => router.push('/register')}>
-                <Text style={[styles.footerLink, { color: theme.primary }]}>Sign Up</Text>
+                <Text style={[styles.footerLink, { color: theme.primary }]}>Create an account</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* SSL Badge matching screenshot */}
+          <View style={[styles.sslBadge, { backgroundColor: theme.successSoft }]}>
+            <View style={[styles.sslDot, { backgroundColor: theme.success }]} />
+            <Ionicons name="shield-checkmark-outline" size={13} color={theme.success} style={{ marginRight: 4 }} />
+            <Text style={[styles.sslText, { color: theme.success }]}>Bank-Grade 256-Bit SSL</Text>
           </View>
 
           {/* Backend Info Footer */}
@@ -220,11 +241,70 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xl,
     borderWidth: 1,
     padding: Spacing.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowColor: '#4f46e5',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
+    elevation: 4,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  topAccentBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+  },
+  welcomePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radii.pill,
+    marginBottom: Spacing.md,
+  },
+  welcomeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  welcomePillText: {
+    fontSize: 10,
+    fontWeight: Typography.weights.extrabold,
+    letterSpacing: 0.8,
+  },
+  cardTitle: {
+    fontSize: Typography.sizes.xl,
+    fontWeight: Typography.weights.extrabold,
+    letterSpacing: -0.3,
+    marginBottom: 4,
+  },
+  cardSubtitle: {
+    fontSize: Typography.sizes.xs,
+    marginBottom: Spacing.lg,
+    lineHeight: 18,
+  },
+  sslBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: Radii.pill,
+    marginTop: Spacing.lg,
+  },
+  sslDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  sslText: {
+    fontSize: 11,
+    fontWeight: Typography.weights.semibold,
   },
   errorBanner: {
     flexDirection: 'row',

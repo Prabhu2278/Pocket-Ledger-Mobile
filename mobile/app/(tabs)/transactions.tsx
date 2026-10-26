@@ -22,6 +22,7 @@ import * as FileSystem from 'expo-file-system';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/ui/Header';
+import { AmbientMesh } from '../../src/components/ui/AmbientMesh';
 import { FilterChips } from '../../src/components/ui/FilterChips';
 import { FilterDrawerModal, FilterState } from '../../src/components/modals/FilterDrawerModal';
 import { TransactionItem } from '../../src/components/cards/TransactionItem';
@@ -33,7 +34,7 @@ import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
 
 export default function TransactionsScreen() {
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
   const {
     transactions,
@@ -266,6 +267,7 @@ export default function TransactionsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <AmbientMesh />
       <Header
         subtitle="Unified Financial Ledger"
         onPressFilter={() => setIsFilterModalOpen(true)}
@@ -275,7 +277,15 @@ export default function TransactionsScreen() {
       <View style={[{ flex: 1, width: '100%' }, isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>
         {/* Search and Action Bar */}
         <View style={styles.searchBarContainer}>
-          <View style={[styles.searchInputWrapper, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.searchInputWrapper,
+              {
+                backgroundColor: isDark ? theme.surface : '#edf2f9',
+                borderColor: isDark ? theme.border : '#e2e8f0',
+              },
+            ]}
+          >
             <Ionicons name="search-outline" size={18} color={theme.textMuted} style={{ marginRight: 8 }} />
             <TextInput
               placeholder="Search notes, categories, wallets..."
@@ -398,19 +408,19 @@ export default function TransactionsScreen() {
                     style={[
                       styles.kpiCard,
                       {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderTopColor: theme.success,
-                        borderTopWidth: 2,
+                        backgroundColor: isDark ? '#0f201b' : '#ecfdf5',
+                        borderColor: isDark ? '#065f46' : '#a7f3d0',
+                        borderTopColor: '#10b981',
+                        borderTopWidth: 3,
                       },
                     ]}
                   >
                     <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="arrow-down-circle" size={13} color={theme.success} />
-                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>INCOME</Text>
+                      <Ionicons name="arrow-up-circle" size={13} color={isDark ? '#34d399' : '#059669'} />
+                      <Text style={[styles.kpiLabel, { color: isDark ? '#6ee7b7' : '#047857' }]}>INCOME</Text>
                     </View>
                     <Text
-                      style={[styles.kpiValue, { color: theme.success }]}
+                      style={[styles.kpiValue, { color: isDark ? '#34d399' : '#047857' }]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
                     >
@@ -423,19 +433,19 @@ export default function TransactionsScreen() {
                     style={[
                       styles.kpiCard,
                       {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderTopColor: theme.danger,
-                        borderTopWidth: 2,
+                        backgroundColor: isDark ? '#261318' : '#fff1f2',
+                        borderColor: isDark ? '#881337' : '#fecdd3',
+                        borderTopColor: '#f43f5e',
+                        borderTopWidth: 3,
                       },
                     ]}
                   >
                     <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="arrow-up-circle" size={13} color={theme.danger} />
-                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>EXPENSES</Text>
+                      <Ionicons name="arrow-down-circle" size={13} color={isDark ? '#fb7185' : '#e11d48'} />
+                      <Text style={[styles.kpiLabel, { color: isDark ? '#fda4af' : '#be123c' }]}>EXPENSES</Text>
                     </View>
                     <Text
-                      style={[styles.kpiValue, { color: theme.danger }]}
+                      style={[styles.kpiValue, { color: isDark ? '#fb7185' : '#e11d48' }]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
                     >
@@ -448,19 +458,19 @@ export default function TransactionsScreen() {
                     style={[
                       styles.kpiCard,
                       {
-                        backgroundColor: theme.surface,
-                        borderColor: theme.border,
-                        borderTopColor: theme.primary,
-                        borderTopWidth: 2,
+                        backgroundColor: isDark ? '#14182e' : '#eef2ff',
+                        borderColor: isDark ? '#3730a3' : '#c7d2fe',
+                        borderTopColor: '#4f46e5',
+                        borderTopWidth: 3,
                       },
                     ]}
                   >
                     <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="receipt-outline" size={13} color={theme.primary} />
-                      <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL TXNS</Text>
+                      <Ionicons name="receipt-outline" size={13} color={isDark ? '#a5b4fc' : '#4f46e5'} />
+                      <Text style={[styles.kpiLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>TOTAL TXNS</Text>
                     </View>
                     <Text
-                      style={[styles.kpiValue, { color: theme.primary }]}
+                      style={[styles.kpiValue, { color: isDark ? '#ffffff' : '#3730a3' }]}
                       numberOfLines={1}
                       adjustsFontSizeToFit
                     >

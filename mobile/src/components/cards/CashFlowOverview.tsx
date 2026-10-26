@@ -110,17 +110,30 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
           </Text>
         </View>
 
-        {/* Net Cash Flow Pill */}
+        {/* Net Cash Flow Pill - Replicating SSL/Status pill from Web (Pic 2) */}
         <View
           style={[
             styles.netPill,
-            { backgroundColor: netCashFlow >= 0 ? theme.successSoft : theme.dangerSoft },
+            {
+              backgroundColor: netCashFlow >= 0 ? '#ecfdf5' : '#fff1f2',
+              borderColor: netCashFlow >= 0 ? '#a7f3d0' : '#fecdd3',
+              borderWidth: 1,
+            },
           ]}
         >
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: netCashFlow >= 0 ? '#10b981' : '#f43f5e',
+              marginRight: 5,
+            }}
+          />
           <Text
             style={[
               styles.netPillText,
-              { color: netCashFlow >= 0 ? theme.success : theme.danger },
+              { color: netCashFlow >= 0 ? '#059669' : '#e11d48' },
             ]}
           >
             {netCashFlow >= 0 ? '+' : '-'}
@@ -129,22 +142,32 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
         </View>
       </View>
 
-      {/* Period Selection Tabs */}
-      <View style={[styles.periodTabsRow, { backgroundColor: theme.surfaceMuted }]}>
+      {/* Period Selection Tabs - Soft Lavender Track with Vibrant Indigo Active Pill */}
+      <View
+        style={[
+          styles.periodTabsRow,
+          {
+            backgroundColor: '#eef2ff',
+            borderColor: '#c7d2fe',
+            borderWidth: 1,
+          },
+        ]}
+      >
         {(['7D', '1M', '3M', '6M', '1Y'] as const).map((p) => {
           const isActive = period === p;
           return (
             <TouchableOpacity
               key={p}
+              activeOpacity={0.8}
               onPress={() => setPeriod(p)}
               style={[
                 styles.periodTab,
                 isActive && {
-                  backgroundColor: theme.surface,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 2,
+                  backgroundColor: '#4f46e5',
+                  shadowColor: '#4f46e5',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3,
                   elevation: 2,
                 },
               ]}
@@ -153,8 +176,8 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
                 style={[
                   styles.periodTabText,
                   {
-                    color: isActive ? theme.primary : theme.textMuted,
-                    fontWeight: isActive ? Typography.weights.bold : Typography.weights.medium,
+                    color: isActive ? '#ffffff' : '#6366f1',
+                    fontWeight: isActive ? Typography.weights.bold : Typography.weights.semibold,
                   },
                 ]}
               >
@@ -243,6 +266,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   netPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Radii.pill,

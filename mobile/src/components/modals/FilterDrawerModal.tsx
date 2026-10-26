@@ -61,18 +61,24 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
 
+  // State for wallet dropdown modal
+  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const [walletSearch, setWalletSearch] = useState('');
+
   // State for calendar picker modal
   const [activeDatePicker, setActiveDatePicker] = useState<'start' | 'end' | null>(null);
 
-  const typeOptions = [
-    { id: 'all', label: 'All Types' },
-    { id: 'expense', label: 'Expenses' },
-    { id: 'income', label: 'Income' },
-  ];
+  // Selected wallet object
+  const selectedWallet = wallets.find((w) => String(w.id) === filters.walletId);
 
   // Filtered categories in dropdown search
   const filteredCategories = categories.filter((cat) =>
     cat.toLowerCase().includes(categorySearch.trim().toLowerCase())
+  );
+
+  // Filtered wallets in dropdown search
+  const filteredWallets = wallets.filter((w) =>
+    w.name.toLowerCase().includes(walletSearch.trim().toLowerCase())
   );
 
   return (
@@ -126,92 +132,107 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
 
             {/* Body */}
             <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-              {/* 1. Transaction Type */}
+
+              {/* 2. Wallet / Account Selection (Chips if <= 4, Dropdown if > 4) */}
               <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Transaction Type</Text>
-                <View style={styles.chipsWrap}>
-                  {typeOptions.map((opt) => {
-                    const isSelected = filters.type === opt.id;
-                    return (
-                      <TouchableOpacity
-                        key={opt.id}
-                        activeOpacity={0.7}
-                        onPress={() => onUpdateFilters({ ...filters, type: opt.id })}
-                        style={[
-                          styles.chip,
-                          {
-                            backgroundColor: isSelected ? theme.primary : theme.surfaceMuted,
-                            borderColor: isSelected ? theme.primary : theme.border,
-                          },
-                        ]}
-                      >
-                        <Text
+                <View style={styles.sectionLabelRow}>
+                  <Text style={[styles.sectionLabel, { color: theme.textSecondary, marginBottom: 0 }]}>
+                    Account / Wallet
+                  </Text>
+                  {filters.walletId !== 'all' ? (
+                    <TouchableOpacity onPress={() => onUpdateFilters({ ...filters, walletId: 'all' })}>
+                      <Text style={[styles.resetInlineText, { color: theme.primary }]}>Reset</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {wallets.length <= 4 ? (
+                  /* 4 or fewer wallets: horizontal chips */
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => onUpdateFilters({ ...filters, walletId: 'all' })}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: filters.walletId === 'all' ? theme.primary : theme.surfaceMuted,
+                          borderColor: filters.walletId === 'all' ? theme.primary : theme.border,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.chipText, { color: filters.walletId === 'all' ? '#ffffff' : theme.text }]}>
+                        All Wallets
+                      </Text>
+                    </TouchableOpacity>
+
+                    {wallets.map((w) => {
+                      const isSelected = filters.walletId === String(w.id);
+                      return (
+                        <TouchableOpacity
+                          key={w.id}
+                          activeOpacity={0.7}
+                          onPress={() => onUpdateFilters({ ...filters, walletId: String(w.id) })}
                           style={[
-                            styles.chipText,
-                            { color: isSelected ? '#ffffff' : theme.text },
+                            styles.chip,
+                            {
+                              backgroundColor: isSelected ? theme.primary : theme.surfaceMuted,
+                              borderColor: isSelected ? theme.primary : theme.border,
+                            },
                           ]}
                         >
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* 2. Wallet / Account Dropdown/Scroll */}
-              <View style={styles.section}>
-                <Text style={[styles.sectionLabel, { color: theme.textSecondary }]}>Account / Wallet</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                          <View
+                            style={[
+                              styles.walletDot,
+                              { backgroundColor: w.color || theme.primary },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.chipText,
+                              { color: isSelected ? '#ffffff' : theme.text },
+                            ]}
+                          >
+                            {w.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                ) : (
+                  /* More than 4 wallets: Drop box selector */
                   <TouchableOpacity
                     activeOpacity={0.7}
-                    onPress={() => onUpdateFilters({ ...filters, walletId: 'all' })}
+                    onPress={() => setShowWalletDropdown(true)}
                     style={[
-                      styles.chip,
+                      styles.dropdownTrigger,
                       {
-                        backgroundColor: filters.walletId === 'all' ? theme.primary : theme.surfaceMuted,
-                        borderColor: filters.walletId === 'all' ? theme.primary : theme.border,
+                        backgroundColor: theme.background,
+                        borderColor: filters.walletId !== 'all' ? theme.primary : theme.border,
                       },
                     ]}
                   >
-                    <Text style={[styles.chipText, { color: filters.walletId === 'all' ? '#ffffff' : theme.text }]}>
-                      All Wallets
-                    </Text>
-                  </TouchableOpacity>
-
-                  {wallets.map((w) => {
-                    const isSelected = filters.walletId === String(w.id);
-                    return (
-                      <TouchableOpacity
-                        key={w.id}
-                        activeOpacity={0.7}
-                        onPress={() => onUpdateFilters({ ...filters, walletId: String(w.id) })}
+                    <View style={styles.dropdownLeft}>
+                      <View
                         style={[
-                          styles.chip,
+                          styles.categoryDot,
                           {
-                            backgroundColor: isSelected ? theme.primary : theme.surfaceMuted,
-                            borderColor: isSelected ? theme.primary : theme.border,
+                            backgroundColor: selectedWallet?.color || theme.primary,
                           },
                         ]}
+                      />
+                      <Text
+                        style={[
+                          styles.dropdownValueText,
+                          { color: theme.text },
+                          filters.walletId !== 'all' && { fontWeight: Typography.weights.bold },
+                        ]}
                       >
-                        <View
-                          style={[
-                            styles.walletDot,
-                            { backgroundColor: w.color || theme.primary },
-                          ]}
-                        />
-                        <Text
-                          style={[
-                            styles.chipText,
-                            { color: isSelected ? '#ffffff' : theme.text },
-                          ]}
-                        >
-                          {w.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                        {selectedWallet ? selectedWallet.name : 'All Wallets (Drop to select)'}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* 3. Category - DROP BOX SELECTOR */}
@@ -542,6 +563,126 @@ export const FilterDrawerModal: React.FC<FilterDrawerModalProps> = ({
                         ]}
                       >
                         {cat}
+                      </Text>
+                    </View>
+                    {isSelected ? (
+                      <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Wallet Dropdown Selection Modal (Used when wallets > 4) */}
+      <Modal
+        visible={showWalletDropdown}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowWalletDropdown(false)}
+      >
+        <View style={styles.dropdownModalOverlay}>
+          <TouchableOpacity
+            style={styles.backdrop}
+            activeOpacity={1}
+            onPress={() => setShowWalletDropdown(false)}
+          />
+
+          <View style={[styles.dropdownModalContent, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.dropdownModalHeader, { borderBottomColor: theme.border }]}>
+              <Text style={[styles.dropdownModalTitle, { color: theme.text }]}>Select Account / Wallet</Text>
+              <TouchableOpacity
+                onPress={() => setShowWalletDropdown(false)}
+                style={[styles.closeBtn, { backgroundColor: theme.surfaceMuted }]}
+              >
+                <Ionicons name="close" size={18} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search in Dropdown if more than 5 wallets */}
+            {wallets.length > 5 ? (
+              <View style={[styles.dropdownSearchWrapper, { backgroundColor: theme.background, borderColor: theme.border }]}>
+                <Ionicons name="search-outline" size={16} color={theme.textMuted} style={{ marginRight: 6 }} />
+                <TextInput
+                  placeholder="Search wallets..."
+                  placeholderTextColor={theme.textMuted}
+                  value={walletSearch}
+                  onChangeText={setWalletSearch}
+                  style={[styles.dropdownSearchInput, { color: theme.text }]}
+                />
+                {walletSearch ? (
+                  <TouchableOpacity onPress={() => setWalletSearch('')}>
+                    <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ) : null}
+
+            {/* Wallets List */}
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+              {/* All Wallets Option */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  onUpdateFilters({ ...filters, walletId: 'all' });
+                  setShowWalletDropdown(false);
+                }}
+                style={[
+                  styles.categoryListItem,
+                  { borderBottomColor: theme.border },
+                  filters.walletId === 'all' && { backgroundColor: theme.primarySoft },
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <View style={[styles.categoryDot, { backgroundColor: theme.primary }]} />
+                  <Text
+                    style={[
+                      styles.categoryListItemText,
+                      { color: theme.text },
+                      filters.walletId === 'all' && { fontWeight: Typography.weights.bold, color: theme.primary },
+                    ]}
+                  >
+                    All Wallets
+                  </Text>
+                </View>
+                {filters.walletId === 'all' ? (
+                  <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+                ) : null}
+              </TouchableOpacity>
+
+              {filteredWallets.map((w) => {
+                const isSelected = filters.walletId === String(w.id);
+                return (
+                  <TouchableOpacity
+                    key={w.id}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      onUpdateFilters({ ...filters, walletId: String(w.id) });
+                      setShowWalletDropdown(false);
+                    }}
+                    style={[
+                      styles.categoryListItem,
+                      { borderBottomColor: theme.border },
+                      isSelected && { backgroundColor: theme.primarySoft },
+                    ]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View
+                        style={[
+                          styles.categoryDot,
+                          { backgroundColor: w.color || theme.primary },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.categoryListItemText,
+                          { color: theme.text },
+                          isSelected && { fontWeight: Typography.weights.bold, color: theme.primary },
+                        ]}
+                      >
+                        {w.name}
                       </Text>
                     </View>
                     {isSelected ? (

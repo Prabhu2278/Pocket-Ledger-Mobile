@@ -15,9 +15,11 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/ui/Header';
+import { AmbientMesh } from '../../src/components/ui/AmbientMesh';
 import { CashFlowOverview } from '../../src/components/cards/CashFlowOverview';
 import { formatCurrency, formatCompactCurrency } from '../../src/utils/formatCurrency';
 import { getCategoryColor } from '../../src/constants/categories';
@@ -230,6 +232,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <AmbientMesh />
       <Header />
 
       <ScrollView
@@ -249,79 +252,108 @@ export default function DashboardScreen() {
       >
         {/* ---------------------------------------------------------------------
             Row 1: Four Top Summary Cards (TOTAL INCOME, TOTAL EXPENSES, TOTAL BALANCE, NET CASH FLOW)
+            Matching soft pastel palette from Web Landing UI (Pic 2)
             --------------------------------------------------------------------- */}
         <View style={styles.kpisGrid}>
-          {/* Card 1: Total Income (Green) */}
+          {/* Card 1: Total Income (Emerald Pastel) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: isDark ? '#0f201b' : '#ecfdf5',
+                borderColor: isDark ? '#065f46' : '#a7f3d0',
                 borderTopColor: '#10b981',
               },
             ]}
           >
-            <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL INCOME</Text>
-            <Text style={[styles.kpiAmount, { color: '#10b981' }]} numberOfLines={1}>
+            <View style={styles.kpiTopRow}>
+              <Text style={[styles.kpiLabel, { color: isDark ? '#6ee7b7' : '#047857' }]}>
+                TOTAL INCOME
+              </Text>
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5' }]}>
+                <Ionicons name="arrow-up" size={13} color="#059669" />
+              </View>
+            </View>
+            <Text style={[styles.kpiAmount, { color: isDark ? '#34d399' : '#047857' }]} numberOfLines={1}>
               +{formatCurrency(totalIncome, currency)}
             </Text>
           </View>
 
-          {/* Card 2: Total Expenses (Red) */}
+          {/* Card 2: Total Expenses (Rose Pastel) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                borderTopColor: '#ef4444',
+                backgroundColor: isDark ? '#261318' : '#fff1f2',
+                borderColor: isDark ? '#881337' : '#fecdd3',
+                borderTopColor: '#f43f5e',
               },
             ]}
           >
-            <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL EXPENSES</Text>
-            <Text style={[styles.kpiAmount, { color: '#ef4444' }]} numberOfLines={1}>
+            <View style={styles.kpiTopRow}>
+              <Text style={[styles.kpiLabel, { color: isDark ? '#fda4af' : '#be123c' }]}>
+                TOTAL EXPENSES
+              </Text>
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(244,63,94,0.2)' : '#ffe4e6' }]}>
+                <Ionicons name="arrow-down" size={13} color="#e11d48" />
+              </View>
+            </View>
+            <Text style={[styles.kpiAmount, { color: isDark ? '#fb7185' : '#e11d48' }]} numberOfLines={1}>
               -{formatCurrency(totalSpent, currency)}
             </Text>
           </View>
 
-          {/* Card 3: Total Balance (Blue) */}
+          {/* Card 3: Total Balance (Royal Indigo Pastel) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                borderTopColor: '#2563eb',
+                backgroundColor: isDark ? '#14182e' : '#eef2ff',
+                borderColor: isDark ? '#3730a3' : '#c7d2fe',
+                borderTopColor: '#4f46e5',
               },
             ]}
           >
-            <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>TOTAL BALANCE</Text>
-            <Text style={[styles.kpiAmount, { color: theme.text }]} numberOfLines={1}>
+            <View style={styles.kpiTopRow}>
+              <Text style={[styles.kpiLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
+                TOTAL BALANCE
+              </Text>
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(79,70,229,0.2)' : '#e0e7ff' }]}>
+                <Ionicons name="wallet-outline" size={13} color="#4f46e5" />
+              </View>
+            </View>
+            <Text style={[styles.kpiAmount, { color: isDark ? '#ffffff' : '#312e81' }]} numberOfLines={1}>
               {formatCurrency(totalBalance, currency)}
             </Text>
           </View>
 
-          {/* Card 4: Net Cash Flow (Purple) */}
+          {/* Card 4: Net Cash Flow (Cyan Pastel) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
-                borderTopColor: '#8b5cf6',
+                backgroundColor: isDark ? '#0f222b' : '#ecfeff',
+                borderColor: isDark ? '#155e75' : '#a5f3fc',
+                borderTopColor: '#06b6d4',
               },
             ]}
           >
-            <Text style={[styles.kpiLabel, { color: theme.textMuted }]}>NET CASH FLOW</Text>
+            <View style={styles.kpiTopRow}>
+              <Text style={[styles.kpiLabel, { color: isDark ? '#67e8f9' : '#0e7490' }]}>
+                NET CASH FLOW
+              </Text>
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(6,182,212,0.2)' : '#cffafe' }]}>
+                <Ionicons name="stats-chart-outline" size={13} color="#0891b2" />
+              </View>
+            </View>
             <Text
               style={[
                 styles.kpiAmount,
-                { color: netCashFlow >= 0 ? '#10b981' : '#ef4444' },
+                { color: isDark ? (netCashFlow >= 0 ? '#22d3ee' : '#f87171') : (netCashFlow >= 0 ? '#0e7490' : '#e11d48') },
               ]}
               numberOfLines={1}
             >
@@ -334,12 +366,17 @@ export default function DashboardScreen() {
         {/* ---------------------------------------------------------------------
             Row 2: Your Wallets Section (Matching web .dashboard-section-card)
             --------------------------------------------------------------------- */}
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: isDark ? theme.border : '#e2e8f0' }]}>
           <View style={styles.cardHeader}>
             <View style={styles.titleGroup}>
-              <View style={[styles.headerIconBox, { backgroundColor: theme.primarySoft }]}>
-                <Ionicons name="card-outline" size={18} color={theme.primary} />
-              </View>
+              <LinearGradient
+                colors={['#6366f1', '#4f46e5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerIconBox}
+              >
+                <Ionicons name="card-outline" size={18} color="#ffffff" />
+              </LinearGradient>
               <View>
                 <Text style={[styles.cardTitle, { color: theme.text }]}>Your Wallets</Text>
                 <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
@@ -349,7 +386,7 @@ export default function DashboardScreen() {
             </View>
 
             <TouchableOpacity onPress={() => router.push('/(tabs)/wallets')}>
-              <Text style={[styles.dashboardLink, { color: theme.primary }]}>View All Wallets →</Text>
+              <Text style={[styles.dashboardLink, { color: theme.primary, fontWeight: '700' }]}>View All Wallets →</Text>
             </TouchableOpacity>
           </View>
 
@@ -358,8 +395,17 @@ export default function DashboardScreen() {
               {wallets.map((w, idx) => {
                 const bal = Number(w.current_balance ?? w.balance ?? w.initial_balance ?? 0);
                 const typeLabel = getWalletTypeLabel(w.wallet_type);
-                const accentColor = w.color || (idx === 0 ? '#10b981' : idx === 1 ? '#2563eb' : '#8b5cf6');
                 const isPrimary = idx === 0 || w.is_default;
+
+                // Color palette cycling matching Pic 2 pastel ecosystem
+                const palettes = [
+                  { bg: '#f0f4ff', border: '#c7d2fe', grad: ['#4f46e5', '#6366f1'] as const },
+                  { bg: '#f5f3ff', border: '#ddd6fe', grad: ['#7c3aed', '#a855f7'] as const },
+                  { bg: '#ecfdf5', border: '#a7f3d0', grad: ['#059669', '#10b981'] as const },
+                  { bg: '#fff1f2', border: '#fecdd3', grad: ['#e11d48', '#f43f5e'] as const },
+                  { bg: '#ecfeff', border: '#a5f3fc', grad: ['#0891b2', '#06b6d4'] as const },
+                ];
+                const p = palettes[idx % palettes.length];
 
                 return (
                   <TouchableOpacity
@@ -369,15 +415,21 @@ export default function DashboardScreen() {
                     style={[
                       styles.walletTile,
                       {
-                        backgroundColor: isDark ? '#161e2e' : '#f8fafc',
-                        borderColor: theme.border,
+                        backgroundColor: isDark ? '#161e2e' : p.bg,
+                        borderColor: isDark ? theme.border : p.border,
+                        borderWidth: 1.5,
                       },
                     ]}
                   >
                     <View style={styles.walletTileTop}>
-                      <View style={[styles.walletTileIcon, { backgroundColor: accentColor }]}>
+                      <LinearGradient
+                        colors={p.grad}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.walletTileIcon}
+                      >
                         <Ionicons name={getWalletIconName(w.wallet_type)} size={16} color="#ffffff" />
-                      </View>
+                      </LinearGradient>
                       <View style={styles.walletTileMeta}>
                         <Text style={[styles.walletTileName, { color: theme.text }]} numberOfLines={1}>
                           {w.name}
@@ -392,8 +444,8 @@ export default function DashboardScreen() {
                         {formatCurrency(bal, currency)}
                       </Text>
                       {isPrimary && (
-                        <View style={[styles.primaryTag, { backgroundColor: theme.primarySoft }]}>
-                          <Text style={[styles.primaryTagText, { color: theme.primary }]}>Primary</Text>
+                        <View style={[styles.primaryTag, { backgroundColor: isDark ? theme.primarySoft : '#dbeafe', borderColor: '#bfdbfe', borderWidth: 1 }]}>
+                          <Text style={[styles.primaryTagText, { color: '#1d4ed8' }]}>Primary</Text>
                         </View>
                       )}
                     </View>
@@ -736,19 +788,31 @@ const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: '47%',
-    padding: 14,
-    borderRadius: Radii.md,
-    borderWidth: 1,
+    padding: 13,
+    borderRadius: Radii.lg,
+    borderWidth: 1.5,
     borderTopWidth: 3.5,
   },
+  kpiTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  kpiIconBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: Radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   kpiLabel: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     letterSpacing: 0.5,
-    marginBottom: 4,
   },
   kpiAmount: {
-    fontSize: 16,
+    fontSize: 16.5,
     fontWeight: '800',
   },
   // Section Cards

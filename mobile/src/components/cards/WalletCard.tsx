@@ -25,7 +25,7 @@ export const WalletCard: React.FC<WalletCardProps> = ({
   onDelete,
   onPress,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
 
   const getWalletTypeIcon = (type: string) => {
     const t = (type || '').toUpperCase();
@@ -43,7 +43,42 @@ export const WalletCard: React.FC<WalletCardProps> = ({
     return 'Digital / UPI';
   };
 
-  const accentColor = wallet.color || '#10b981';
+  const getWalletPalette = (type: string) => {
+    const t = (type || '').toUpperCase();
+    if (t === 'BANK') {
+      return {
+        bg: isDark ? theme.surface : '#f0f4ff',
+        border: isDark ? theme.border : '#c7d2fe',
+        iconBg: isDark ? 'rgba(79,70,229,0.2)' : '#e0e7ff',
+        iconColor: '#4f46e5',
+      };
+    }
+    if (t === 'CASH') {
+      return {
+        bg: isDark ? theme.surface : '#ecfdf5',
+        border: isDark ? theme.border : '#a7f3d0',
+        iconBg: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5',
+        iconColor: '#10b981',
+      };
+    }
+    if (t === 'CREDIT_CARD') {
+      return {
+        bg: isDark ? theme.surface : '#fff1f2',
+        border: isDark ? theme.border : '#fecdd3',
+        iconBg: isDark ? 'rgba(244,63,94,0.2)' : '#ffe4e6',
+        iconColor: '#f43f5e',
+      };
+    }
+    // UPI / Digital / Other
+    return {
+      bg: isDark ? theme.surface : '#f5f3ff',
+      border: isDark ? theme.border : '#ddd6fe',
+      iconBg: isDark ? 'rgba(124,58,237,0.2)' : '#ede9fe',
+      iconColor: '#7c3aed',
+    };
+  };
+
+  const palette = getWalletPalette(wallet.wallet_type);
 
   return (
     <TouchableOpacity
@@ -52,16 +87,17 @@ export const WalletCard: React.FC<WalletCardProps> = ({
       style={[
         styles.card,
         {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
+          backgroundColor: palette.bg,
+          borderColor: palette.border,
+          borderWidth: 1.5,
           shadowColor: theme.cardShadow,
         },
       ]}
     >
       <View style={styles.topRow}>
         <View style={styles.leftGroup}>
-          <View style={[styles.iconBox, { backgroundColor: `${accentColor}1A` }]}>
-            <Ionicons name={getWalletTypeIcon(wallet.wallet_type) as any} size={20} color={accentColor} />
+          <View style={[styles.iconBox, { backgroundColor: palette.iconBg }]}>
+            <Ionicons name={getWalletTypeIcon(wallet.wallet_type) as any} size={20} color={palette.iconColor} />
           </View>
           <View>
             <Text style={[styles.walletName, { color: theme.text }]}>{wallet.name}</Text>

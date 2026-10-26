@@ -22,6 +22,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/ui/Header';
+import { AmbientMesh } from '../../src/components/ui/AmbientMesh';
 import { AddCurrencyModal } from '../../src/components/modals/AddCurrencyModal';
 import {
   DEFAULT_CURRENCIES,
@@ -36,85 +37,22 @@ import { Spacing, Radii, Typography, useResponsive, ThemeId } from '../../src/th
 
 const THEME_DISPLAY_ITEMS = [
   {
-    id: 'system' as const,
-    name: 'System Automatic',
-    category: 'Dynamic Mode',
-    description: 'Automatically synchronizes with your device operating system Light or Dark appearance.',
-    icon: 'phone-portrait-outline' as const,
-    color: '#6366f1',
-    swatches: ['#0f172a', '#ffffff', '#6366f1', '#10b981', '#f43f5e'],
-  },
-  {
     id: 'light' as const,
-    name: 'Default Light',
-    category: 'Clean Daylight & Royal Indigo',
-    description: 'Clean white cards with soft grayish-blue background and classic indigo tones.',
+    name: 'Light Theme',
+    category: 'Clean Daylight & Crisp Contrast',
+    description: 'Clean white cards with soft slate accents, clear daylight visibility, and royal indigo highlights.',
     icon: 'sunny' as const,
     color: '#4f46e5',
-    swatches: ['#f8fafc', '#ffffff', '#4f46e5', '#15803d', '#b91c1c'],
+    swatches: ['#f6f8fd', '#ffffff', '#4f46e5', '#10b981', '#f43f5e'],
   },
   {
     id: 'dark' as const,
-    name: 'Default Dark',
+    name: 'Dark Theme',
     category: 'Midnight Dark & Fintech Slate',
-    description: 'Easy on the eyes in low light with deep slate backgrounds and vibrant contrast accents.',
+    description: 'Easy on the eyes in low light with deep slate backgrounds, battery power savings, and vibrant accents.',
     icon: 'moon' as const,
     color: '#818cf8',
     swatches: ['#0a0e17', '#131926', '#818cf8', '#34d399', '#f87171'],
-  },
-  {
-    id: 'ocean' as const,
-    name: 'Ocean Blue',
-    category: 'Deep Sea Navy & Cyan Azure',
-    description: 'Deep oceanic blue tones with brilliant electric cyan highlights and high clarity.',
-    icon: 'water' as const,
-    color: '#0ea5e9',
-    swatches: ['#071626', '#0f2742', '#0ea5e9', '#10b981', '#f43f5e'],
-  },
-  {
-    id: 'forest' as const,
-    name: 'Forest Green',
-    category: 'Evergreen Moss & Mint Emerald',
-    description: 'Rich organic evergreen forest theme with radiant mint emerald and jade accents.',
-    icon: 'leaf' as const,
-    color: '#10b981',
-    swatches: ['#071711', '#0f291e', '#10b981', '#34d399', '#fb7185'],
-  },
-  {
-    id: 'sunset' as const,
-    name: 'Sunset Orange',
-    category: 'Warm Twilight & Solar Tangerine',
-    description: 'Warm twilight dusky obsidian with vibrant sunset amber, tangerine and golden accents.',
-    icon: 'flame' as const,
-    color: '#f97316',
-    swatches: ['#140c14', '#241424', '#f97316', '#10b981', '#ef4444'],
-  },
-  {
-    id: 'purple' as const,
-    name: 'Royal Purple',
-    category: 'Imperial Amethyst & Cosmic Violet',
-    description: 'Regal midnight purple with luminous imperial amethyst and lavender highlights.',
-    icon: 'sparkles' as const,
-    color: '#a855f7',
-    swatches: ['#0d0b1a', '#18142e', '#a855f7', '#10b981', '#f43f5e'],
-  },
-  {
-    id: 'rose' as const,
-    name: 'Rose Pink',
-    category: 'Velvet Noir & Rose Gold',
-    description: 'Velvet berry noir with elegant blush pink, rose gold, and soft blossom accents.',
-    icon: 'heart' as const,
-    color: '#f43f5e',
-    swatches: ['#160912', '#291222', '#f43f5e', '#10b981', '#ff2d55'],
-  },
-  {
-    id: 'amoled' as const,
-    name: 'AMOLED Black',
-    category: '100% Pitch Black & Neon Signals',
-    description: 'Pure #000000 true black for maximum battery power savings on OLED displays.',
-    icon: 'contrast' as const,
-    color: '#6366f1',
-    swatches: ['#000000', '#0a0a0a', '#6366f1', '#22c55e', '#ef4444'],
   },
 ];
 
@@ -411,6 +349,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <AmbientMesh />
       <Header title="Settings" showMonthSwitcher={false} subtitle="Preferences, categories & account" />
 
       {/* Top 5 Navigation Tabs matching web SETTINGS_TABS */}
@@ -525,12 +464,12 @@ export default function SettingsScreen() {
             <View style={styles.cardHeaderFlex}>
               <Text style={[styles.cardHeading, { color: theme.text }]}>Appearance & Theme</Text>
               <View style={[styles.pillBadge, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>{THEME_DISPLAY_ITEMS.length} Styles</Text>
+                <Text style={[styles.pillBadgeText, { color: theme.primary }]}>2 Options</Text>
               </View>
             </View>
 
             <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-              Personalize your Pocket Ledger interface with handcrafted themes, high-contrast dark palettes, and AMOLED black.
+              Choose between clean Daylight Light mode and sleek Midnight Dark mode for your Pocket Ledger interface.
             </Text>
 
             {THEME_DISPLAY_ITEMS.map((item) => {
@@ -544,7 +483,7 @@ export default function SettingsScreen() {
                   style={[
                     styles.themeCard,
                     {
-                      backgroundColor: item.id === 'system' ? theme.surfaceMuted : item.swatches[1],
+                      backgroundColor: item.swatches[1],
                       borderColor: isActive ? theme.primary : theme.border,
                       borderWidth: isActive ? 2 : 1,
                       borderLeftColor: item.color,
@@ -571,7 +510,7 @@ export default function SettingsScreen() {
                         <Text
                           style={[
                             styles.themeCardName,
-                            { color: item.id === 'light' ? '#0f172a' : item.id === 'system' ? theme.text : '#ffffff' },
+                            { color: item.id === 'light' ? '#0f172a' : '#ffffff' },
                           ]}
                         >
                           {item.name}
@@ -579,7 +518,7 @@ export default function SettingsScreen() {
                         <Text
                           style={[
                             styles.themeCardCategory,
-                            { color: item.id === 'light' ? '#64748b' : item.id === 'system' ? theme.textMuted : '#94a3b8' },
+                            { color: item.id === 'light' ? '#64748b' : '#94a3b8' },
                           ]}
                         >
                           {item.category}
@@ -611,7 +550,7 @@ export default function SettingsScreen() {
                   <Text
                     style={[
                       styles.themeDesc,
-                      { color: item.id === 'light' ? '#64748b' : item.id === 'system' ? theme.textMuted : '#94a3b8' },
+                      { color: item.id === 'light' ? '#64748b' : '#94a3b8' },
                     ]}
                   >
                     {item.description}

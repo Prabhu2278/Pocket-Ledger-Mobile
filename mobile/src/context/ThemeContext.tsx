@@ -29,36 +29,26 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemScheme = useColorScheme();
-  const [themeId, setThemeIdState] = useState<ThemeId>('system');
+  const [themeId, setThemeIdState] = useState<ThemeId>('light');
 
   useEffect(() => {
     async function loadSavedTheme() {
-      const saved = await storage.getTheme();
-      if (saved && (saved === 'system' || saved in ALL_THEMES)) {
-        setThemeIdState(saved as ThemeId);
-      }
+      setThemeIdState('light');
+      await storage.setTheme('light');
     }
     loadSavedTheme();
   }, []);
 
   const setThemeId = useCallback(async (id: ThemeId) => {
-    setThemeIdState(id);
-    await storage.setTheme(id);
+    const targetId: ThemeId = id === 'light' ? 'light' : 'dark';
+    setThemeIdState(targetId);
+    await storage.setTheme(targetId);
   }, []);
 
   const setThemeMode = setThemeId;
 
-  // Resolve active theme colors
-  let activeTheme: ThemeColors;
-  if (themeId === 'system') {
-    activeTheme = systemScheme === 'dark' ? darkTheme : lightTheme;
-  } else if (themeId in ALL_THEMES) {
-    activeTheme = ALL_THEMES[themeId as keyof typeof ALL_THEMES];
-  } else {
-    activeTheme = systemScheme === 'dark' ? darkTheme : lightTheme;
-  }
-
+  // Resolve active theme colors (strictly light or dark)
+  const activeTheme: ThemeColors = themeId === 'light' ? lightTheme : darkTheme;
   const isDark = activeTheme.isDark;
 
   const toggleTheme = useCallback(() => {

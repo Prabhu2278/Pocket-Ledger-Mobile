@@ -2,21 +2,12 @@
 // Pocket Ledger Mobile - Theme Types & Definitions
 // ---------------------------------------------------------------------------
 
-export type ThemeId =
-  | 'system'
-  | 'light'
-  | 'dark'
-  | 'ocean'
-  | 'forest'
-  | 'sunset'
-  | 'purple'
-  | 'rose'
-  | 'amoled';
+export type ThemeId = 'light' | 'dark';
 
 export type ThemeMode = ThemeId;
 
 export interface ThemeColors {
-  id: ThemeId;
+  id: ThemeId | string;
   name: string;
   isDark: boolean;
   background: string;
