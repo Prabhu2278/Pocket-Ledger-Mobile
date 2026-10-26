@@ -15,6 +15,7 @@ import { Spacing, Radii, Typography, useResponsive } from '../../theme';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CustomAlertDialog } from '../modals/CustomAlertDialog';
+import { MonthPickerModal } from '../modals/MonthPickerModal';
 
 export interface HeaderProps {
   title?: string;
@@ -34,10 +35,11 @@ export const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const { theme, isDark } = useTheme();
   const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
-  const { monthState, goToPreviousMonth, goToNextMonth } = useApp();
+  const { monthState, setMonthState, goToPreviousMonth, goToNextMonth } = useApp();
   const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [logoutLoading, setLogoutLoading] = React.useState(false);
+  const [showMonthPicker, setShowMonthPicker] = React.useState(false);
 
   const handleAvatarPress = () => {
     setShowLogoutConfirm(true);
@@ -125,14 +127,26 @@ export const Header: React.FC<HeaderProps> = ({
             <Ionicons name="chevron-back" size={17} color={isDark ? '#818cf8' : '#4f46e5'} />
           </TouchableOpacity>
 
-          <View style={styles.monthLabelContainer}>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setShowMonthPicker(true)}
+            style={styles.monthLabelContainer}
+            accessibilityRole="button"
+            accessibilityLabel="Select Month & Year"
+          >
             <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
               <Ionicons name="calendar-outline" size={14} color={isDark ? '#818cf8' : '#4f46e5'} />
             </View>
             <Text style={[styles.monthLabel, { color: isDark ? '#f8fafc' : '#312e81', fontWeight: '800' }]}>
               {formatMonthLabel(monthState)}
             </Text>
-          </View>
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={isDark ? '#818cf8' : '#6366f1'}
+              style={{ marginLeft: 4, opacity: 0.85 }}
+            />
+          </TouchableOpacity>
 
           <TouchableOpacity
             activeOpacity={0.7}
@@ -148,6 +162,17 @@ export const Header: React.FC<HeaderProps> = ({
           </TouchableOpacity>
         </View>
       ) : null}
+
+      {/* Interactive Month & Year Calendar Picker Modal */}
+      <MonthPickerModal
+        isOpen={showMonthPicker}
+        onClose={() => setShowMonthPicker(false)}
+        currentYear={monthState.year}
+        currentMonth={monthState.month}
+        onSelectMonth={(year, month) => {
+          setMonthState({ year, month });
+        }}
+      />
 
       {/* Styled Sign Out Confirmation Dialog */}
       <CustomAlertDialog
