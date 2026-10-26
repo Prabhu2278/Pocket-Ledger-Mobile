@@ -1474,37 +1474,6 @@ export default function CsvImportModal() {
                 </View>
               </View>
 
-              {/* 4. Wallet Color Selection */}
-              <View style={styles.formGroup}>
-                <Text style={[styles.inputFieldLabel, { color: theme.textSecondary }]}>
-                  Wallet Theme Color
-                </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 }}>
-                  {CURATED_WALLET_COLORS.map((col) => {
-                    const isSelected = walletFormColor.toLowerCase() === col.toLowerCase();
-                    return (
-                      <TouchableOpacity
-                        key={col}
-                        activeOpacity={0.8}
-                        onPress={() => setWalletFormColor(col)}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 16,
-                          backgroundColor: col,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderWidth: isSelected ? 2.5 : 0,
-                          borderColor: theme.text,
-                        }}
-                      >
-                        {isSelected ? <Ionicons name="checkmark" size={16} color="#ffffff" /> : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-
               {/* Action Buttons */}
               <View style={styles.modalActionsRow}>
                 <TouchableOpacity
