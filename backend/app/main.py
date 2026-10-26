@@ -1,11 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import engine, Base
-from app.models import User, Expense, Income, Budget, Wallet, Setting
+from sqlalchemy import text
+from app.models import User, Expense, Income, Transfer, Budget, Wallet, Setting
 from app.api.v1.router import api_router
 
 # Create tables in PostgreSQL/SQLite on startup if they do not exist
 Base.metadata.create_all(bind=engine)
+try:
+    with engine.connect() as conn:
+        conn.execute(text("CREATE VIEW IF NOT EXISTS transfer AS SELECT * FROM transfers"))
+        conn.commit()
+except Exception:
+    pass
 
 app = FastAPI(
     title="Pocket Ledger API",

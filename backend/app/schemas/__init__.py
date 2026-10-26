@@ -273,3 +273,9 @@ from app.schemas.category import (
     CategoryResponse,
     CategoryDeleteResponse,
 )
+from app.schemas.transfer import (
+    TransferBase,
+    TransferCreate,
+    TransferUpdate,
+    TransferResponse,
+)
