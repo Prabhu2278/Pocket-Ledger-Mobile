@@ -16,6 +16,7 @@ export * from './cards/CashFlowOverview';
 export * from './cards/StatCard';
 export * from './cards/TransactionItem';
 export * from './cards/WalletCard';
+export * from './cards/DonutBreakdownCard';
 
 // Modals
 export * from './modals/AddCurrencyModal';

@@ -21,6 +21,7 @@ import { useApp } from '../../src/context/AppContext';
 import { Header } from '../../src/components/ui/Header';
 import { AmbientMesh } from '../../src/components/ui/AmbientMesh';
 import { CashFlowOverview } from '../../src/components/cards/CashFlowOverview';
+import { DonutBreakdownCard } from '../../src/components/cards/DonutBreakdownCard';
 import { formatCurrency, formatCompactCurrency } from '../../src/utils/formatCurrency';
 import { getCategoryColor } from '../../src/constants/categories';
 import { Spacing, Radii, Typography, useResponsive } from '../../src/theme';
@@ -512,92 +513,26 @@ export default function DashboardScreen() {
             --------------------------------------------------------------------- */}
 
         {/* Chart B: Expense Breakdown */}
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Expense Breakdown</Text>
-              <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-                Where your money goes
-              </Text>
-            </View>
-            <Text style={[styles.totalSpentText, { color: '#ef4444' }]}>
-              {formatCurrency(totalSpent, currency)}
-            </Text>
-          </View>
-
-          <View style={styles.breakdownList}>
-            {expenseBreakdown.length > 0 ? (
-              expenseBreakdown.map((item, idx) => (
-                <View key={idx} style={[styles.breakdownRow, { borderBottomColor: theme.border }]}>
-                  <View style={styles.breakdownLeft}>
-                    <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
-                    <Text style={[styles.breakdownName, { color: theme.text }]} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                  </View>
-                  <View style={styles.breakdownRight}>
-                    <View style={[styles.pctBadge, { backgroundColor: theme.surfaceMuted }]}>
-                      <Text style={[styles.pctText, { color: theme.textSecondary }]}>{item.percentage}%</Text>
-                    </View>
-                    <Text style={[styles.breakdownAmt, { color: theme.text }]}>
-                      {formatCurrency(item.amount, currency)}
-                    </Text>
-                  </View>
-                </View>
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
-                  No expenses recorded this month
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        <DonutBreakdownCard
+          title="Expense Breakdown"
+          subtitle="Where your money goes"
+          type="expense"
+          total={totalSpent}
+          items={expenseBreakdown}
+          currency={currency}
+          emptyMessage="No expenses recorded this month"
+        />
 
         {/* Chart C: Income Sources */}
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.cardHeader}>
-            <View>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Income Sources</Text>
-              <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-                Where your money comes from
-              </Text>
-            </View>
-            <Text style={[styles.totalSpentText, { color: '#10b981' }]}>
-              {formatCurrency(totalIncome, currency)}
-            </Text>
-          </View>
-
-          <View style={styles.breakdownList}>
-            {incomeBreakdown.length > 0 ? (
-              incomeBreakdown.map((item, idx) => (
-                <View key={idx} style={[styles.breakdownRow, { borderBottomColor: theme.border }]}>
-                  <View style={styles.breakdownLeft}>
-                    <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
-                    <Text style={[styles.breakdownName, { color: theme.text }]} numberOfLines={1}>
-                      {item.name}
-                    </Text>
-                  </View>
-                  <View style={styles.breakdownRight}>
-                    <View style={[styles.pctBadge, { backgroundColor: theme.surfaceMuted }]}>
-                      <Text style={[styles.pctText, { color: theme.textSecondary }]}>{item.percentage}%</Text>
-                    </View>
-                    <Text style={[styles.breakdownAmt, { color: theme.text }]}>
-                      {formatCurrency(item.amount, currency)}
-                    </Text>
-                  </View>
-                </View>
-              ))
-            ) : (
-              <View style={styles.emptyContainer}>
-                <Text style={[styles.emptySubtitle, { color: theme.textMuted }]}>
-                  No income recorded this month
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
+        <DonutBreakdownCard
+          title="Income Sources"
+          subtitle="Where your money comes from"
+          type="income"
+          total={totalIncome}
+          items={incomeBreakdown}
+          currency={currency}
+          emptyMessage="No income recorded this month"
+        />
 
         {/* ---------------------------------------------------------------------
             Row 5: Recent Transactions (Matching web Recent Transactions Table)
