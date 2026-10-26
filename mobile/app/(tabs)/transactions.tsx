@@ -310,8 +310,6 @@ export default function TransactionsScreen() {
       <AmbientMesh />
       <Header
         subtitle="Unified Financial Ledger"
-        onPressFilter={() => setIsFilterModalOpen(true)}
-        activeFilterCount={activeFilterCount}
       />
 
       <View style={[{ flex: 1, width: '100%' }, isTablet && { maxWidth: contentMaxWidth, alignSelf: 'center' }]}>

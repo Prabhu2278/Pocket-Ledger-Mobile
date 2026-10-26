@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const { theme, isDark } = useTheme();
   const { isSmallPhone, isTablet, contentMaxWidth } = useResponsive();
-  const { monthState, goToPreviousMonth, goToNextMonth, isRefreshing, refreshAll } = useApp();
+  const { monthState, goToPreviousMonth, goToNextMonth } = useApp();
   const { user, logout } = useAuth();
   const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false);
   const [logoutLoading, setLogoutLoading] = React.useState(false);
@@ -85,44 +85,6 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
 
         <View style={styles.actionsContainer}>
-          {onPressFilter ? (
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={onPressFilter}
-              style={[
-                styles.iconButton,
-                {
-                  backgroundColor: activeFilterCount > 0 ? theme.primarySoft : isDark ? theme.surfaceMuted : '#f1f5f9',
-                  borderColor: activeFilterCount > 0 ? theme.primary : theme.border,
-                  borderWidth: activeFilterCount > 0 ? 1 : 0,
-                },
-              ]}
-            >
-              <Ionicons
-                name="filter"
-                size={18}
-                color={activeFilterCount > 0 ? theme.primary : theme.textSecondary}
-              />
-              {activeFilterCount > 0 ? (
-                <View style={[styles.headerBadge, { backgroundColor: theme.primary }]}>
-                  <Text style={styles.headerBadgeText}>{activeFilterCount}</Text>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={refreshAll}
-            style={[styles.iconButton, { backgroundColor: isDark ? theme.surfaceMuted : '#f1f5f9' }]}
-          >
-            <Ionicons
-              name="refresh-outline"
-              size={18}
-              color={isRefreshing ? theme.primary : theme.textSecondary}
-            />
-          </TouchableOpacity>
-
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={handleAvatarPress}
