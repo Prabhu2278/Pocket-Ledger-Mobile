@@ -440,7 +440,89 @@ export default function TransactionsScreen() {
           />
         </View>
 
-        {/* Transaction List */}
+        {/* Fixed KPI Summary Cards (Pinned/Stationary while scrolling transaction data) */}
+        {(insights || transactions.length > 0) ? (
+          <View style={styles.kpiContainer}>
+            <View style={styles.kpiRow}>
+              {/* 1. Income Card */}
+              <View
+                style={[
+                  styles.kpiCard,
+                  {
+                    backgroundColor: isDark ? '#0e2220' : '#ecfdf5',
+                    borderColor: isDark ? '#134e40' : '#a7f3d0',
+                    borderTopColor: '#10b981',
+                    borderTopWidth: 3,
+                  },
+                ]}
+              >
+                <View style={styles.kpiHeaderRow}>
+                  <Ionicons name="arrow-up-circle" size={13} color={isDark ? '#34d399' : '#059669'} />
+                  <Text style={[styles.kpiLabel, { color: isDark ? '#6ee7b7' : '#047857' }]}>INCOME</Text>
+                </View>
+                <Text
+                  style={[styles.kpiValue, { color: isDark ? '#34d399' : '#047857' }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  +{formatCurrency(summaryIncome, currency)}
+                </Text>
+              </View>
+
+              {/* 2. Expenses Card */}
+              <View
+                style={[
+                  styles.kpiCard,
+                  {
+                    backgroundColor: isDark ? '#26151c' : '#fff1f2',
+                    borderColor: isDark ? '#4c1d29' : '#fecdd3',
+                    borderTopColor: '#f43f5e',
+                    borderTopWidth: 3,
+                  },
+                ]}
+              >
+                <View style={styles.kpiHeaderRow}>
+                  <Ionicons name="arrow-down-circle" size={13} color={isDark ? '#fb7185' : '#e11d48'} />
+                  <Text style={[styles.kpiLabel, { color: isDark ? '#fda4af' : '#be123c' }]}>EXPENSES</Text>
+                </View>
+                <Text
+                  style={[styles.kpiValue, { color: isDark ? '#fb7185' : '#e11d48' }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  -{formatCurrency(summaryExpense, currency)}
+                </Text>
+              </View>
+
+              {/* 3. Total Transactions Card */}
+              <View
+                style={[
+                  styles.kpiCard,
+                  {
+                    backgroundColor: isDark ? '#141b30' : '#eef2ff',
+                    borderColor: isDark ? '#28355c' : '#c7d2fe',
+                    borderTopColor: '#6366f1',
+                    borderTopWidth: 3,
+                  },
+                ]}
+              >
+                <View style={styles.kpiHeaderRow}>
+                  <Ionicons name="receipt-outline" size={13} color={isDark ? '#818cf8' : '#4f46e5'} />
+                  <Text style={[styles.kpiLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>TOTAL TXNS</Text>
+                </View>
+                <Text
+                  style={[styles.kpiValue, { color: isDark ? '#ffffff' : '#3730a3' }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {summaryTxCount}
+                </Text>
+              </View>
+            </View>
+          </View>
+        ) : null}
+
+        {/* Transaction List (Scrolls independently below the fixed cards) */}
         <FlatList
           data={paginatedTransactions}
           keyExtractor={(item) => `${item.type}-${item.id}`}
@@ -460,88 +542,6 @@ export default function TransactionsScreen() {
               colors={[theme.primary]}
               tintColor={theme.primary}
             />
-          }
-          ListHeaderComponent={
-            (insights || transactions.length > 0) ? (
-              <View style={styles.kpiContainer}>
-                <View style={styles.kpiRow}>
-                  {/* 1. Income Card */}
-                  <View
-                    style={[
-                      styles.kpiCard,
-                      {
-                        backgroundColor: isDark ? '#0e2220' : '#ecfdf5',
-                        borderColor: isDark ? '#134e40' : '#a7f3d0',
-                        borderTopColor: '#10b981',
-                        borderTopWidth: 3,
-                      },
-                    ]}
-                  >
-                    <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="arrow-up-circle" size={13} color={isDark ? '#34d399' : '#059669'} />
-                      <Text style={[styles.kpiLabel, { color: isDark ? '#6ee7b7' : '#047857' }]}>INCOME</Text>
-                    </View>
-                    <Text
-                      style={[styles.kpiValue, { color: isDark ? '#34d399' : '#047857' }]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      +{formatCurrency(summaryIncome, currency)}
-                    </Text>
-                  </View>
-
-                  {/* 2. Expenses Card */}
-                  <View
-                    style={[
-                      styles.kpiCard,
-                      {
-                        backgroundColor: isDark ? '#26151c' : '#fff1f2',
-                        borderColor: isDark ? '#4c1d29' : '#fecdd3',
-                        borderTopColor: '#f43f5e',
-                        borderTopWidth: 3,
-                      },
-                    ]}
-                  >
-                    <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="arrow-down-circle" size={13} color={isDark ? '#fb7185' : '#e11d48'} />
-                      <Text style={[styles.kpiLabel, { color: isDark ? '#fda4af' : '#be123c' }]}>EXPENSES</Text>
-                    </View>
-                    <Text
-                      style={[styles.kpiValue, { color: isDark ? '#fb7185' : '#e11d48' }]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      -{formatCurrency(summaryExpense, currency)}
-                    </Text>
-                  </View>
-
-                  {/* 3. Total Transactions Card */}
-                  <View
-                    style={[
-                      styles.kpiCard,
-                      {
-                        backgroundColor: isDark ? '#141b30' : '#eef2ff',
-                        borderColor: isDark ? '#28355c' : '#c7d2fe',
-                        borderTopColor: '#6366f1',
-                        borderTopWidth: 3,
-                      },
-                    ]}
-                  >
-                    <View style={styles.kpiHeaderRow}>
-                      <Ionicons name="receipt-outline" size={13} color={isDark ? '#818cf8' : '#4f46e5'} />
-                      <Text style={[styles.kpiLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>TOTAL TXNS</Text>
-                    </View>
-                    <Text
-                      style={[styles.kpiValue, { color: isDark ? '#ffffff' : '#3730a3' }]}
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                    >
-                      {summaryTxCount}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            ) : undefined
           }
           ListFooterComponent={
             totalTransactionsCount > 0 ? (
@@ -886,7 +886,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   listContent: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
     paddingBottom: 90,
   },
   fab: {
@@ -904,7 +905,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   kpiContainer: {
-    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
     gap: Spacing.sm,
   },
   kpiRow: {
