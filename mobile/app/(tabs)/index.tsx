@@ -508,75 +508,8 @@ export default function DashboardScreen() {
         />
 
         {/* ---------------------------------------------------------------------
-            Row 4: Analytics Row (Dual Bar Chart, Expense Breakdown, Income Sources)
+            Row 4: Analytics Row (Expense Breakdown, Income Sources)
             --------------------------------------------------------------------- */}
-        {/* Chart A: Income vs Expenses Dual-Bar Chart */}
-        <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <View style={styles.cardHeaderWrap}>
-            <View>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>Income vs Expenses</Text>
-              <Text style={[styles.cardSubtitle, { color: theme.textMuted }]}>
-                Track your monthly financial flow
-              </Text>
-            </View>
-
-            <View style={styles.periodPills}>
-              {(['7D', '3M', '6M', '1Y'] as const).map((p) => (
-                <TouchableOpacity
-                  key={p}
-                  onPress={() => setPeriod(p)}
-                  style={[
-                    styles.periodBtn,
-                    period === p && { backgroundColor: theme.primary },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.periodBtnText,
-                      { color: period === p ? '#ffffff' : theme.textSecondary },
-                    ]}
-                  >
-                    {p}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Legend */}
-          <View style={styles.chartLegend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>Income</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#ef4444' }]} />
-              <Text style={[styles.legendText, { color: theme.textSecondary }]}>Expenses</Text>
-            </View>
-          </View>
-
-          {/* Bar Chart Plot Area */}
-          <View style={styles.barChartContainer}>
-            <View style={styles.barsRow}>
-              {chartData.map((d, idx) => {
-                const incHeight = Math.max((d.income / maxChartVal) * 110, 4);
-                const expHeight = Math.max((d.expense / maxChartVal) * 110, 4);
-
-                return (
-                  <View key={idx} style={styles.barGroup}>
-                    <View style={styles.barPair}>
-                      <View style={[styles.bar, { height: incHeight, backgroundColor: '#10b981' }]} />
-                      <View style={[styles.bar, { height: expHeight, backgroundColor: '#ef4444' }]} />
-                    </View>
-                    <Text style={[styles.barLabel, { color: theme.textMuted }]} numberOfLines={1}>
-                      {d.label}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        </View>
 
         {/* Chart B: Expense Breakdown */}
         <View style={[styles.sectionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
@@ -891,8 +824,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weights.semibold,
   },
   totalSpentText: {
-    fontSize: Typography.sizes.sm,
-    fontWeight: Typography.weights.bold,
+    fontSize: Typography.sizes.md,
+    fontWeight: Typography.weights.extrabold,
   },
   // Wallets Section
   walletsScroll: {
@@ -1026,40 +959,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 11,
     borderBottomWidth: 0.5,
   },
   breakdownLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     flex: 1,
   },
   categoryDot: {
-    width: 9,
-    height: 9,
+    width: 10,
+    height: 10,
     borderRadius: Radii.pill,
   },
   breakdownName: {
-    fontSize: Typography.sizes.xs,
-    fontWeight: Typography.weights.medium,
+    fontSize: Typography.sizes.base,
+    fontWeight: Typography.weights.semibold,
   },
   breakdownRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   pctBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: Radii.sm,
   },
   pctText: {
-    fontSize: 10,
-    fontWeight: Typography.weights.semibold,
+    fontSize: 12,
+    fontWeight: Typography.weights.bold,
   },
   breakdownAmt: {
-    fontSize: Typography.sizes.xs,
+    fontSize: Typography.sizes.base,
     fontWeight: Typography.weights.bold,
   },
   // Recent Transactions List
