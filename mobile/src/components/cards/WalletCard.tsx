@@ -47,34 +47,34 @@ export const WalletCard: React.FC<WalletCardProps> = ({
     const t = (type || '').toUpperCase();
     if (t === 'BANK') {
       return {
-        bg: isDark ? theme.surface : '#f0f4ff',
-        border: isDark ? theme.border : '#c7d2fe',
-        iconBg: isDark ? 'rgba(79,70,229,0.2)' : '#e0e7ff',
-        iconColor: '#4f46e5',
+        bg: isDark ? '#141b30' : '#f0f4ff',
+        border: isDark ? '#28355c' : '#c7d2fe',
+        iconBg: isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff',
+        iconColor: isDark ? '#818cf8' : '#4f46e5',
       };
     }
     if (t === 'CASH') {
       return {
-        bg: isDark ? theme.surface : '#ecfdf5',
-        border: isDark ? theme.border : '#a7f3d0',
-        iconBg: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5',
-        iconColor: '#10b981',
+        bg: isDark ? '#0e2220' : '#ecfdf5',
+        border: isDark ? '#134e40' : '#a7f3d0',
+        iconBg: isDark ? 'rgba(16, 185, 129, 0.22)' : '#d1fae5',
+        iconColor: isDark ? '#34d399' : '#10b981',
       };
     }
     if (t === 'CREDIT_CARD') {
       return {
-        bg: isDark ? theme.surface : '#fff1f2',
-        border: isDark ? theme.border : '#fecdd3',
-        iconBg: isDark ? 'rgba(244,63,94,0.2)' : '#ffe4e6',
-        iconColor: '#f43f5e',
+        bg: isDark ? '#26151c' : '#fff1f2',
+        border: isDark ? '#4c1d29' : '#fecdd3',
+        iconBg: isDark ? 'rgba(244, 63, 94, 0.22)' : '#ffe4e6',
+        iconColor: isDark ? '#fb7185' : '#f43f5e',
       };
     }
     // UPI / Digital / Other
     return {
-      bg: isDark ? theme.surface : '#f5f3ff',
-      border: isDark ? theme.border : '#ddd6fe',
-      iconBg: isDark ? 'rgba(124,58,237,0.2)' : '#ede9fe',
-      iconColor: '#7c3aed',
+      bg: isDark ? '#1d1736' : '#f5f3ff',
+      border: isDark ? '#3d2e66' : '#ddd6fe',
+      iconBg: isDark ? 'rgba(124, 58, 237, 0.22)' : '#ede9fe',
+      iconColor: isDark ? '#c084fc' : '#7c3aed',
     };
   };
 

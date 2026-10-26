@@ -17,12 +17,14 @@ interface FilterChipsProps {
   options: FilterOption[];
   selectedId: string;
   onSelect: (id: string) => void;
+  rightElement?: React.ReactNode;
 }
 
 export const FilterChips: React.FC<FilterChipsProps> = ({
   options,
   selectedId,
   onSelect,
+  rightElement,
 }) => {
   const { theme } = useTheme();
 
@@ -81,6 +83,7 @@ export const FilterChips: React.FC<FilterChipsProps> = ({
           </TouchableOpacity>
         );
       })}
+      {rightElement}
     </ScrollView>
   );
 };

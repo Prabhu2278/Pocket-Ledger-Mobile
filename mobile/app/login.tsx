@@ -16,17 +16,19 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../src/context/AuthContext';
 import { useTheme } from '../src/context/ThemeContext';
 import { Input } from '../src/components/ui/Input';
 import { Button } from '../src/components/ui/Button';
+import { AmbientMesh } from '../src/components/ui/AmbientMesh';
 import { api } from '../src/api/api';
 import { Spacing, Radii, Typography, useResponsive } from '../src/theme';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const { isTablet } = useResponsive();
 
   const [email, setEmail] = useState('');
@@ -59,6 +61,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <AmbientMesh />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardView}
@@ -71,15 +74,19 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Brand Header */}
-          {/* Brand Header matching web Login.jsx */}
           <View style={styles.brandContainer}>
-            <View style={[styles.brandLogoBox, { backgroundColor: theme.primarySoft }]}>
-              <Ionicons name="receipt-outline" size={34} color={theme.primary} />
-            </View>
+            <LinearGradient
+              colors={['#6366f1', '#4f46e5']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.brandLogoBox}
+            >
+              <Ionicons name="receipt-outline" size={34} color="#ffffff" />
+            </LinearGradient>
             <View style={styles.brandTitleRow}>
               <Text style={[styles.brandTitle, { color: theme.text }]}>Pocket Ledger</Text>
-              <View style={[styles.brandPill, { backgroundColor: theme.primarySoft }]}>
-                <Text style={[styles.brandPillText, { color: theme.primary }]}>Pro v2.4</Text>
+              <View style={[styles.brandPill, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.22)' : theme.primarySoft }]}>
+                <Text style={[styles.brandPillText, { color: isDark ? '#a5b4fc' : theme.primary }]}>Pro v2.4</Text>
               </View>
             </View>
             <Text style={[styles.pitchHeadline, { color: theme.text }]}>
@@ -95,18 +102,23 @@ export default function LoginScreen() {
             style={[
               styles.formCard,
               {
-                backgroundColor: theme.surface,
-                borderColor: theme.border,
+                backgroundColor: isDark ? '#111726' : theme.surface,
+                borderColor: isDark ? '#1e293b' : theme.border,
               },
             ]}
           >
-            {/* Top Accent Gradient Bar matching screenshot */}
-            <View style={[styles.topAccentBar, { backgroundColor: theme.primary }]} />
+            {/* Top Accent Gradient Bar matching web screenshot */}
+            <LinearGradient
+              colors={['#ec4899', '#8b5cf6', '#3b82f6', '#06b6d4']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.topAccentBar}
+            />
 
             {/* Welcome Back Pill matching web screenshot */}
-            <View style={[styles.welcomePill, { backgroundColor: theme.primarySoft }]}>
-              <View style={[styles.welcomeDot, { backgroundColor: theme.primary }]} />
-              <Text style={[styles.welcomePillText, { color: theme.primary }]}>WELCOME BACK</Text>
+            <View style={[styles.welcomePill, { backgroundColor: isDark ? 'rgba(99, 102, 241, 0.2)' : theme.primarySoft }]}>
+              <View style={[styles.welcomeDot, { backgroundColor: isDark ? '#818cf8' : theme.primary }]} />
+              <Text style={[styles.welcomePillText, { color: isDark ? '#a5b4fc' : theme.primary }]}>WELCOME BACK</Text>
             </View>
 
             <Text style={[styles.cardTitle, { color: theme.text }]}>Sign in to Pocket Ledger</Text>
@@ -156,16 +168,25 @@ export default function LoginScreen() {
                 Don't have an account?{' '}
               </Text>
               <TouchableOpacity onPress={() => router.push('/register')}>
-                <Text style={[styles.footerLink, { color: theme.primary }]}>Create an account</Text>
+                <Text style={[styles.footerLink, { color: isDark ? '#818cf8' : theme.primary }]}>Create an account</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* SSL Badge matching screenshot */}
-          <View style={[styles.sslBadge, { backgroundColor: theme.successSoft }]}>
-            <View style={[styles.sslDot, { backgroundColor: theme.success }]} />
-            <Ionicons name="shield-checkmark-outline" size={13} color={theme.success} style={{ marginRight: 4 }} />
-            <Text style={[styles.sslText, { color: theme.success }]}>Bank-Grade 256-Bit SSL</Text>
+          <View
+            style={[
+              styles.sslBadge,
+              {
+                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.16)' : theme.successSoft,
+                borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#a7f3d0',
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <View style={[styles.sslDot, { backgroundColor: isDark ? '#34d399' : theme.success }]} />
+            <Ionicons name="shield-checkmark-outline" size={13} color={isDark ? '#34d399' : theme.success} style={{ marginRight: 4 }} />
+            <Text style={[styles.sslText, { color: isDark ? '#34d399' : theme.success }]}>Bank-Grade 256-Bit SSL</Text>
           </View>
 
           {/* Backend Info Footer */}

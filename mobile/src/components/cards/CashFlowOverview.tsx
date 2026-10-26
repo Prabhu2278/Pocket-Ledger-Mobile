@@ -21,7 +21,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
   currency = 'INR',
   month,
 }) => {
-  const { theme } = useTheme();
+  const { theme, isDark } = useTheme();
   const [period, setPeriod] = useState<'7D' | '1M' | '3M' | '6M' | '1Y'>('6M');
 
   // Compute period data points based on transactions
@@ -115,8 +115,12 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
           style={[
             styles.netPill,
             {
-              backgroundColor: netCashFlow >= 0 ? '#ecfdf5' : '#fff1f2',
-              borderColor: netCashFlow >= 0 ? '#a7f3d0' : '#fecdd3',
+              backgroundColor: isDark
+                ? (netCashFlow >= 0 ? 'rgba(16, 185, 129, 0.16)' : 'rgba(244, 63, 94, 0.16)')
+                : (netCashFlow >= 0 ? '#ecfdf5' : '#fff1f2'),
+              borderColor: isDark
+                ? (netCashFlow >= 0 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)')
+                : (netCashFlow >= 0 ? '#a7f3d0' : '#fecdd3'),
               borderWidth: 1,
             },
           ]}
@@ -126,14 +130,14 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
               width: 6,
               height: 6,
               borderRadius: 3,
-              backgroundColor: netCashFlow >= 0 ? '#10b981' : '#f43f5e',
+              backgroundColor: netCashFlow >= 0 ? (isDark ? '#34d399' : '#10b981') : (isDark ? '#fb7185' : '#f43f5e'),
               marginRight: 5,
             }}
           />
           <Text
             style={[
               styles.netPillText,
-              { color: netCashFlow >= 0 ? '#059669' : '#e11d48' },
+              { color: netCashFlow >= 0 ? (isDark ? '#34d399' : '#059669') : (isDark ? '#fb7185' : '#e11d48') },
             ]}
           >
             {netCashFlow >= 0 ? '+' : '-'}
@@ -142,13 +146,13 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
         </View>
       </View>
 
-      {/* Period Selection Tabs - Soft Lavender Track with Vibrant Indigo Active Pill */}
+      {/* Period Selection Tabs - Soft Track with Vibrant Indigo Active Pill */}
       <View
         style={[
           styles.periodTabsRow,
           {
-            backgroundColor: '#eef2ff',
-            borderColor: '#c7d2fe',
+            backgroundColor: isDark ? '#141c2e' : '#eef2ff',
+            borderColor: isDark ? '#24304f' : '#c7d2fe',
             borderWidth: 1,
           },
         ]}
@@ -163,10 +167,10 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
               style={[
                 styles.periodTab,
                 isActive && {
-                  backgroundColor: '#4f46e5',
-                  shadowColor: '#4f46e5',
+                  backgroundColor: '#6366f1',
+                  shadowColor: '#6366f1',
                   shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
+                  shadowOpacity: 0.35,
                   shadowRadius: 3,
                   elevation: 2,
                 },
@@ -176,7 +180,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
                 style={[
                   styles.periodTabText,
                   {
-                    color: isActive ? '#ffffff' : '#6366f1',
+                    color: isActive ? '#ffffff' : (isDark ? '#94a3b8' : '#6366f1'),
                     fontWeight: isActive ? Typography.weights.bold : Typography.weights.semibold,
                   },
                 ]}

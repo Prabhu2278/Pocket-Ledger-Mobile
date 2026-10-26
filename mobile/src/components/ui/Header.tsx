@@ -144,8 +144,8 @@ export const Header: React.FC<HeaderProps> = ({
           style={[
             styles.monthSwitcher,
             {
-              backgroundColor: isDark ? theme.surfaceMuted : '#eef2ff',
-              borderColor: isDark ? theme.border : '#c7d2fe',
+              backgroundColor: isDark ? '#141c2e' : '#eef2ff',
+              borderColor: isDark ? '#24304f' : '#c7d2fe',
               borderWidth: 1,
             },
           ]}
@@ -155,17 +155,19 @@ export const Header: React.FC<HeaderProps> = ({
             onPress={goToPreviousMonth}
             style={[
               styles.monthArrow,
-              !isDark && { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
+              isDark
+                ? { backgroundColor: '#1c2538', borderRadius: Radii.sm }
+                : { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
             ]}
           >
-            <Ionicons name="chevron-back" size={17} color={isDark ? theme.text : '#4f46e5'} />
+            <Ionicons name="chevron-back" size={17} color={isDark ? '#818cf8' : '#4f46e5'} />
           </TouchableOpacity>
 
           <View style={styles.monthLabelContainer}>
-            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? theme.primarySoft : '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
-              <Ionicons name="calendar-outline" size={14} color="#4f46e5" />
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: isDark ? 'rgba(99, 102, 241, 0.22)' : '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginRight: 6 }}>
+              <Ionicons name="calendar-outline" size={14} color={isDark ? '#818cf8' : '#4f46e5'} />
             </View>
-            <Text style={[styles.monthLabel, { color: isDark ? theme.text : '#312e81', fontWeight: '800' }]}>
+            <Text style={[styles.monthLabel, { color: isDark ? '#f8fafc' : '#312e81', fontWeight: '800' }]}>
               {formatMonthLabel(monthState)}
             </Text>
           </View>
@@ -175,10 +177,12 @@ export const Header: React.FC<HeaderProps> = ({
             onPress={goToNextMonth}
             style={[
               styles.monthArrow,
-              !isDark && { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
+              isDark
+                ? { backgroundColor: '#1c2538', borderRadius: Radii.sm }
+                : { backgroundColor: '#ffffff', shadowColor: '#4f46e5', shadowOpacity: 0.1, shadowRadius: 3, elevation: 1 },
             ]}
           >
-            <Ionicons name="chevron-forward" size={17} color={isDark ? theme.text : '#4f46e5'} />
+            <Ionicons name="chevron-forward" size={17} color={isDark ? '#818cf8' : '#4f46e5'} />
           </TouchableOpacity>
         </View>
       ) : null}

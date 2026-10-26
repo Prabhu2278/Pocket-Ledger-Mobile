@@ -252,17 +252,17 @@ export default function DashboardScreen() {
       >
         {/* ---------------------------------------------------------------------
             Row 1: Four Top Summary Cards (TOTAL INCOME, TOTAL EXPENSES, TOTAL BALANCE, NET CASH FLOW)
-            Matching soft pastel palette from Web Landing UI (Pic 2)
+            Matching luminous palette from Web UI (Pic 2) in both Light and Dark themes
             --------------------------------------------------------------------- */}
         <View style={styles.kpisGrid}>
-          {/* Card 1: Total Income (Emerald Pastel) */}
+          {/* Card 1: Total Income (Emerald) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: isDark ? '#0f201b' : '#ecfdf5',
-                borderColor: isDark ? '#065f46' : '#a7f3d0',
+                backgroundColor: isDark ? '#0e2220' : '#ecfdf5',
+                borderColor: isDark ? '#134e40' : '#a7f3d0',
                 borderTopColor: '#10b981',
               },
             ]}
@@ -271,8 +271,8 @@ export default function DashboardScreen() {
               <Text style={[styles.kpiLabel, { color: isDark ? '#6ee7b7' : '#047857' }]}>
                 TOTAL INCOME
               </Text>
-              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5' }]}>
-                <Ionicons name="arrow-up" size={13} color="#059669" />
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.22)' : '#d1fae5' }]}>
+                <Ionicons name="arrow-up" size={13} color={isDark ? '#34d399' : '#059669'} />
               </View>
             </View>
             <Text style={[styles.kpiAmount, { color: isDark ? '#34d399' : '#047857' }]} numberOfLines={1}>
@@ -280,14 +280,14 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Card 2: Total Expenses (Rose Pastel) */}
+          {/* Card 2: Total Expenses (Rose) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: isDark ? '#261318' : '#fff1f2',
-                borderColor: isDark ? '#881337' : '#fecdd3',
+                backgroundColor: isDark ? '#26151c' : '#fff1f2',
+                borderColor: isDark ? '#4c1d29' : '#fecdd3',
                 borderTopColor: '#f43f5e',
               },
             ]}
@@ -296,8 +296,8 @@ export default function DashboardScreen() {
               <Text style={[styles.kpiLabel, { color: isDark ? '#fda4af' : '#be123c' }]}>
                 TOTAL EXPENSES
               </Text>
-              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(244,63,94,0.2)' : '#ffe4e6' }]}>
-                <Ionicons name="arrow-down" size={13} color="#e11d48" />
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(244,63,94,0.22)' : '#ffe4e6' }]}>
+                <Ionicons name="arrow-down" size={13} color={isDark ? '#fb7185' : '#e11d48'} />
               </View>
             </View>
             <Text style={[styles.kpiAmount, { color: isDark ? '#fb7185' : '#e11d48' }]} numberOfLines={1}>
@@ -305,15 +305,15 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Card 3: Total Balance (Royal Indigo Pastel) */}
+          {/* Card 3: Total Balance (Royal Indigo) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: isDark ? '#14182e' : '#eef2ff',
-                borderColor: isDark ? '#3730a3' : '#c7d2fe',
-                borderTopColor: '#4f46e5',
+                backgroundColor: isDark ? '#141b30' : '#eef2ff',
+                borderColor: isDark ? '#28355c' : '#c7d2fe',
+                borderTopColor: '#6366f1',
               },
             ]}
           >
@@ -321,8 +321,8 @@ export default function DashboardScreen() {
               <Text style={[styles.kpiLabel, { color: isDark ? '#a5b4fc' : '#4338ca' }]}>
                 TOTAL BALANCE
               </Text>
-              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(79,70,229,0.2)' : '#e0e7ff' }]}>
-                <Ionicons name="wallet-outline" size={13} color="#4f46e5" />
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(99,102,241,0.22)' : '#e0e7ff' }]}>
+                <Ionicons name="wallet-outline" size={13} color={isDark ? '#818cf8' : '#4f46e5'} />
               </View>
             </View>
             <Text style={[styles.kpiAmount, { color: isDark ? '#ffffff' : '#312e81' }]} numberOfLines={1}>
@@ -330,14 +330,14 @@ export default function DashboardScreen() {
             </Text>
           </View>
 
-          {/* Card 4: Net Cash Flow (Cyan Pastel) */}
+          {/* Card 4: Net Cash Flow (Cyan) */}
           <View
             style={[
               styles.kpiCard,
               isTablet && { minWidth: '22%' },
               {
-                backgroundColor: isDark ? '#0f222b' : '#ecfeff',
-                borderColor: isDark ? '#155e75' : '#a5f3fc',
+                backgroundColor: isDark ? '#0d232c' : '#ecfeff',
+                borderColor: isDark ? '#154e5c' : '#a5f3fc',
                 borderTopColor: '#06b6d4',
               },
             ]}
@@ -346,14 +346,14 @@ export default function DashboardScreen() {
               <Text style={[styles.kpiLabel, { color: isDark ? '#67e8f9' : '#0e7490' }]}>
                 NET CASH FLOW
               </Text>
-              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(6,182,212,0.2)' : '#cffafe' }]}>
-                <Ionicons name="stats-chart-outline" size={13} color="#0891b2" />
+              <View style={[styles.kpiIconBadge, { backgroundColor: isDark ? 'rgba(6,182,212,0.22)' : '#cffafe' }]}>
+                <Ionicons name="stats-chart-outline" size={13} color={isDark ? '#22d3ee' : '#0891b2'} />
               </View>
             </View>
             <Text
               style={[
                 styles.kpiAmount,
-                { color: isDark ? (netCashFlow >= 0 ? '#22d3ee' : '#f87171') : (netCashFlow >= 0 ? '#0e7490' : '#e11d48') },
+                { color: isDark ? (netCashFlow >= 0 ? '#22d3ee' : '#fb7185') : (netCashFlow >= 0 ? '#0e7490' : '#e11d48') },
               ]}
               numberOfLines={1}
             >
@@ -397,13 +397,48 @@ export default function DashboardScreen() {
                 const typeLabel = getWalletTypeLabel(w.wallet_type);
                 const isPrimary = idx === 0 || w.is_default;
 
-                // Color palette cycling matching Pic 2 pastel ecosystem
+                // Color palette cycling matching Pic 2 ecosystem in both light and dark
                 const palettes = [
-                  { bg: '#f0f4ff', border: '#c7d2fe', grad: ['#4f46e5', '#6366f1'] as const },
-                  { bg: '#f5f3ff', border: '#ddd6fe', grad: ['#7c3aed', '#a855f7'] as const },
-                  { bg: '#ecfdf5', border: '#a7f3d0', grad: ['#059669', '#10b981'] as const },
-                  { bg: '#fff1f2', border: '#fecdd3', grad: ['#e11d48', '#f43f5e'] as const },
-                  { bg: '#ecfeff', border: '#a5f3fc', grad: ['#0891b2', '#06b6d4'] as const },
+                  {
+                    bg: isDark ? '#141b30' : '#f0f4ff',
+                    border: isDark ? '#28355c' : '#c7d2fe',
+                    grad: ['#4f46e5', '#6366f1'] as const,
+                    tagBg: isDark ? 'rgba(99,102,241,0.22)' : '#dbeafe',
+                    tagBorder: isDark ? 'rgba(99,102,241,0.38)' : '#bfdbfe',
+                    tagText: isDark ? '#a5b4fc' : '#1d4ed8',
+                  },
+                  {
+                    bg: isDark ? '#1d1736' : '#f5f3ff',
+                    border: isDark ? '#3d2e66' : '#ddd6fe',
+                    grad: ['#7c3aed', '#a855f7'] as const,
+                    tagBg: isDark ? 'rgba(124,58,237,0.22)' : '#ede9fe',
+                    tagBorder: isDark ? 'rgba(124,58,237,0.38)' : '#ddd6fe',
+                    tagText: isDark ? '#c084fc' : '#6b21a8',
+                  },
+                  {
+                    bg: isDark ? '#0e2220' : '#ecfdf5',
+                    border: isDark ? '#134e40' : '#a7f3d0',
+                    grad: ['#059669', '#10b981'] as const,
+                    tagBg: isDark ? 'rgba(16,185,129,0.22)' : '#d1fae5',
+                    tagBorder: isDark ? 'rgba(16,185,129,0.38)' : '#a7f3d0',
+                    tagText: isDark ? '#34d399' : '#047857',
+                  },
+                  {
+                    bg: isDark ? '#26151c' : '#fff1f2',
+                    border: isDark ? '#4c1d29' : '#fecdd3',
+                    grad: ['#e11d48', '#f43f5e'] as const,
+                    tagBg: isDark ? 'rgba(244,63,94,0.22)' : '#ffe4e6',
+                    tagBorder: isDark ? 'rgba(244,63,94,0.38)' : '#fecdd3',
+                    tagText: isDark ? '#fb7185' : '#be123c',
+                  },
+                  {
+                    bg: isDark ? '#0d232c' : '#ecfeff',
+                    border: isDark ? '#154e5c' : '#a5f3fc',
+                    grad: ['#0891b2', '#06b6d4'] as const,
+                    tagBg: isDark ? 'rgba(6,182,212,0.22)' : '#cffafe',
+                    tagBorder: isDark ? 'rgba(6,182,212,0.38)' : '#a5f3fc',
+                    tagText: isDark ? '#22d3ee' : '#0e7490',
+                  },
                 ];
                 const p = palettes[idx % palettes.length];
 
@@ -415,8 +450,8 @@ export default function DashboardScreen() {
                     style={[
                       styles.walletTile,
                       {
-                        backgroundColor: isDark ? '#161e2e' : p.bg,
-                        borderColor: isDark ? theme.border : p.border,
+                        backgroundColor: p.bg,
+                        borderColor: p.border,
                         borderWidth: 1.5,
                       },
                     ]}
@@ -444,8 +479,8 @@ export default function DashboardScreen() {
                         {formatCurrency(bal, currency)}
                       </Text>
                       {isPrimary && (
-                        <View style={[styles.primaryTag, { backgroundColor: isDark ? theme.primarySoft : '#dbeafe', borderColor: '#bfdbfe', borderWidth: 1 }]}>
-                          <Text style={[styles.primaryTagText, { color: '#1d4ed8' }]}>Primary</Text>
+                        <View style={[styles.primaryTag, { backgroundColor: p.tagBg, borderColor: p.tagBorder, borderWidth: 1 }]}>
+                          <Text style={[styles.primaryTagText, { color: p.tagText }]}>Primary</Text>
                         </View>
                       )}
                     </View>

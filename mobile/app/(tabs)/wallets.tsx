@@ -109,13 +109,13 @@ export default function WalletsScreen() {
           />
         }
       >
-        {/* Total Liquidity Hero Card - Soft Pastel Royal Indigo */}
+        {/* Total Liquidity Hero Card - Luminous Royal Indigo */}
         <View
           style={[
             styles.heroCard,
             {
-              backgroundColor: isDark ? '#14182e' : '#eef2ff',
-              borderColor: isDark ? '#3730a3' : '#c7d2fe',
+              backgroundColor: isDark ? '#141b30' : '#eef2ff',
+              borderColor: isDark ? '#28355c' : '#c7d2fe',
               borderWidth: 1.5,
             },
           ]}
@@ -138,7 +138,7 @@ export default function WalletsScreen() {
           </Text>
 
           {/* Quick Sub-allocations */}
-          <View style={[styles.allocationsRow, { borderTopColor: isDark ? '#3730a3' : '#c7d2fe' }]}>
+          <View style={[styles.allocationsRow, { borderTopColor: isDark ? '#28355c' : '#c7d2fe' }]}>
             <View style={styles.allocItem}>
               <Text style={[styles.allocLabel, { color: isDark ? '#a5b4fc' : '#4f46e5' }]}>Bank</Text>
               <Text style={[styles.allocValue, { color: isDark ? '#ffffff' : '#312e81' }]}>

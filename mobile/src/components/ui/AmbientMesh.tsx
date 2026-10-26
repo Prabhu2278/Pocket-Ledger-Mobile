@@ -12,18 +12,40 @@ const { width } = Dimensions.get('window');
 export const AmbientMesh: React.FC = () => {
   const { isDark } = useTheme();
 
-  if (isDark) return null;
-
   return (
     <View style={styles.container} pointerEvents="none">
-      {/* Top Left Soft Lavender Glow */}
-      <View style={styles.topLavenderGlow} />
+      {/* Top Left Glow (Lavender in light, Deep Indigo/Violet in dark) */}
+      <View
+        style={[
+          styles.topLavenderGlow,
+          isDark && {
+            backgroundColor: '#4338ca',
+            opacity: 0.22,
+          },
+        ]}
+      />
 
-      {/* Center Right Soft Mint / Cyan Glow */}
-      <View style={styles.centerCyanGlow} />
+      {/* Center Right Glow (Mint/Cyan in light, Deep Cyan/Teal in dark) */}
+      <View
+        style={[
+          styles.centerCyanGlow,
+          isDark && {
+            backgroundColor: '#0e7490',
+            opacity: 0.18,
+          },
+        ]}
+      />
 
-      {/* Bottom Soft Periwinkle Glow */}
-      <View style={styles.bottomBlueGlow} />
+      {/* Bottom Glow (Periwinkle in light, Deep Purple in dark) */}
+      <View
+        style={[
+          styles.bottomBlueGlow,
+          isDark && {
+            backgroundColor: '#6b21a8',
+            opacity: 0.16,
+          },
+        ]}
+      />
     </View>
   );
 };
