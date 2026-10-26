@@ -1,10 +1,10 @@
 // ---------------------------------------------------------------------------
 // Pocket Ledger Mobile - Replicated Cash Flow Overview Component
-// Matching frontend/src/components/CashFlowOverview.jsx
+// Matching frontend/src/components/CashFlowOverview.jsx and Dashboard spec
 // ---------------------------------------------------------------------------
 
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { Transaction } from '../../types';
@@ -22,7 +22,8 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
   month,
 }) => {
   const { theme, isDark } = useTheme();
-  const [period, setPeriod] = useState<'7D' | '1M' | '3M' | '6M' | '1Y'>('6M');
+  const [period, setPeriod] = useState<'7D' | '1M' | '3M' | '6M' | '1Y'>('7D');
+  const [selectedBarIndex, setSelectedBarIndex] = useState<number | null>(null);
 
   // Compute period data points based on transactions
   const chartData = useMemo(() => {
@@ -41,6 +42,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
         const dt = d.getDate();
         const iso = `${y}-${String(m).padStart(2, '0')}-${String(dt).padStart(2, '0')}`;
         const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+        const displayDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
         let inc = 0;
         let exp = 0;
@@ -51,7 +53,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
           else if (tx.type === 'expense') exp += a;
         });
 
-        days.push({ label, displayDate: iso, income: inc, expense: exp });
+        days.push({ label, displayDate, income: inc, expense: exp });
       }
       return days;
     }
@@ -65,6 +67,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
       const m = d.getMonth();
       const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
       const label = d.toLocaleDateString('en-US', { month: 'short' });
+      const displayDate = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
       let inc = 0;
       let exp = 0;
@@ -75,7 +78,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
         else if (tx.type === 'expense') exp += a;
       });
 
-      months.push({ label, displayDate: label, income: inc, expense: exp });
+      months.push({ label, displayDate, income: inc, expense: exp });
     }
 
     return months;
@@ -91,8 +94,10 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
     1000
   );
 
+  const activeItem = selectedBarIndex !== null ? chartData[selectedBarIndex] : null;
+
   return (
-    <View
+    <Pressable
       style={[
         styles.card,
         {
@@ -100,17 +105,18 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
           borderColor: theme.border,
         },
       ]}
+      onPress={() => setSelectedBarIndex(null)}
     >
       {/* Header with Title and Period Filter Pills */}
       <View style={styles.headerRow}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.title, { color: theme.text }]}>Cash Flow Overview</Text>
+          <Text style={[styles.title, { color: theme.text }]}>Income vs Expenses</Text>
           <Text style={[styles.subtitle, { color: theme.textMuted }]}>
-            Income vs. Expenses across {period}
+            Track your monthly financial flow
           </Text>
         </View>
 
-        {/* Net Cash Flow Pill - Replicating SSL/Status pill from Web (Pic 2) */}
+        {/* Net Cash Flow Pill */}
         <View
           style={[
             styles.netPill,
@@ -146,7 +152,7 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
         </View>
       </View>
 
-      {/* Period Selection Tabs - Soft Track with Vibrant Indigo Active Pill */}
+      {/* Period Selection Tabs */}
       <View
         style={[
           styles.periodTabsRow,
@@ -163,7 +169,10 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
             <TouchableOpacity
               key={p}
               activeOpacity={0.8}
-              onPress={() => setPeriod(p)}
+              onPress={() => {
+                setPeriod(p);
+                setSelectedBarIndex(null);
+              }}
               style={[
                 styles.periodTab,
                 isActive && {
@@ -194,57 +203,153 @@ export const CashFlowOverview: React.FC<CashFlowOverviewProps> = ({
 
       {/* Bar Chart Plot Area */}
       <View style={styles.plotContainer}>
-        {chartData.map((d, idx) => {
-          const incHeight = Math.max(4, (d.income / maxVal) * 90);
-          const expHeight = Math.max(4, (d.expense / maxVal) * 90);
-
-          return (
-            <View key={idx} style={styles.barGroup}>
-              <View style={styles.barsContainer}>
-                {/* Income Bar (Green) */}
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: incHeight,
-                      backgroundColor: theme.success,
-                    },
-                  ]}
-                />
-                {/* Expense Bar (Red) */}
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: expHeight,
-                      backgroundColor: theme.danger,
-                    },
-                  ]}
-                />
+        {/* Floating Tooltip matching image */}
+        {activeItem && selectedBarIndex !== null && (
+          <View
+            style={[
+              styles.tooltipBox,
+              selectedBarIndex === 0
+                ? { left: 4 }
+                : selectedBarIndex === chartData.length - 1
+                ? { right: 4 }
+                : {
+                    left: `${Math.max(
+                      4,
+                      Math.min(
+                        70,
+                        (selectedBarIndex / (chartData.length - 1)) * 100 - 20
+                      )
+                    )}%`,
+                  },
+            ]}
+          >
+            <Text style={styles.tooltipHeader}>{activeItem.displayDate || activeItem.label}</Text>
+            
+            <View style={styles.tooltipRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={[styles.tooltipDot, { backgroundColor: '#34d399' }]} />
+                <Text style={styles.tooltipLabel}>Income</Text>
               </View>
-              <Text style={[styles.barLabel, { color: theme.textMuted }]}>{d.label}</Text>
+              <Text style={[styles.tooltipValue, { color: '#34d399' }]}>
+                +{formatCurrency(activeItem.income, currency)}
+              </Text>
             </View>
-          );
-        })}
+
+            <View style={styles.tooltipRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={[styles.tooltipDot, { backgroundColor: '#f87171' }]} />
+                <Text style={styles.tooltipLabel}>Expenses</Text>
+              </View>
+              <Text style={[styles.tooltipValue, { color: '#f87171' }]}>
+                -{formatCurrency(activeItem.expense, currency)}
+              </Text>
+            </View>
+
+            <View style={styles.tooltipDivider} />
+
+            <View style={styles.tooltipRow}>
+              <Text style={styles.tooltipNetLabel}>Net</Text>
+              <Text
+                style={[
+                  styles.tooltipValue,
+                  { color: activeItem.income >= activeItem.expense ? '#34d399' : '#f87171' },
+                ]}
+              >
+                {activeItem.income >= activeItem.expense ? '+' : '-'}
+                {formatCurrency(Math.abs(activeItem.income - activeItem.expense), currency)}
+              </Text>
+            </View>
+
+            {/* Caret pointing down */}
+            <View
+              style={[
+                styles.tooltipCaret,
+                selectedBarIndex === 0
+                  ? { left: 24 }
+                  : selectedBarIndex === chartData.length - 1
+                  ? { right: 24 }
+                  : { alignSelf: 'center' },
+              ]}
+            />
+          </View>
+        )}
+
+        {/* Bars Row */}
+        <View style={styles.barsRow}>
+          {chartData.map((d, idx) => {
+            const incHeight = Math.max(5, (d.income / maxVal) * 95);
+            const expHeight = Math.max(5, (d.expense / maxVal) * 95);
+            const isSelected = selectedBarIndex === idx;
+
+            return (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.7}
+                onPress={() => setSelectedBarIndex(selectedBarIndex === idx ? null : idx)}
+                style={[
+                  styles.barGroup,
+                  isSelected && {
+                    backgroundColor: isDark ? 'rgba(99, 102, 241, 0.22)' : 'rgba(99, 102, 241, 0.09)',
+                    borderRadius: Radii.sm,
+                  },
+                ]}
+              >
+                <View style={styles.barsContainer}>
+                  {/* Income Bar (Green) */}
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: incHeight,
+                        backgroundColor: '#10b981',
+                      },
+                    ]}
+                  />
+                  {/* Expense Bar (Red) */}
+                  <View
+                    style={[
+                      styles.bar,
+                      {
+                        height: expHeight,
+                        backgroundColor: '#f43f5e',
+                      },
+                    ]}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.barLabel,
+                    {
+                      color: isSelected ? (isDark ? '#ffffff' : '#312e81') : theme.textMuted,
+                      fontWeight: isSelected ? Typography.weights.bold : Typography.weights.medium,
+                    },
+                  ]}
+                >
+                  {d.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* Bottom Summary Legend Row */}
       <View style={[styles.legendRow, { borderTopColor: theme.borderSubtle }]}>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: theme.success }]} />
+          <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
           <Text style={[styles.legendText, { color: theme.textSecondary }]}>
             Income: {formatCurrency(totalIncome, currency, { compact: true })}
           </Text>
         </View>
 
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: theme.danger }]} />
+          <View style={[styles.legendDot, { backgroundColor: '#f43f5e' }]} />
           <Text style={[styles.legendText, { color: theme.textSecondary }]}>
-            Spent: {formatCurrency(totalExpense, currency, { compact: true })}
+            Expenses: {formatCurrency(totalExpense, currency, { compact: true })}
           </Text>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 
@@ -259,7 +364,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   title: {
     fontSize: Typography.sizes.base,
@@ -297,21 +402,28 @@ const styles = StyleSheet.create({
     fontSize: Typography.sizes.xs,
   },
   plotContainer: {
+    position: 'relative',
+    paddingTop: 84, // Room for floating tooltip
+    paddingBottom: Spacing.xs,
+  },
+  barsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    height: 120,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
+    height: 125,
   },
   barGroup: {
     flex: 1,
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: '100%',
+    paddingVertical: 4,
+    marginHorizontal: 1,
   },
   barsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 95,
+    height: 100,
     gap: 3,
   },
   bar: {
@@ -319,7 +431,7 @@ const styles = StyleSheet.create({
     borderRadius: Radii.xs,
   },
   barLabel: {
-    fontSize: 10,
+    fontSize: 11,
     marginTop: 6,
   },
   legendRow: {
@@ -342,6 +454,75 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: Typography.sizes.xs,
     fontWeight: Typography.weights.semibold,
+  },
+  tooltipBox: {
+    position: 'absolute',
+    top: 4,
+    zIndex: 99,
+    backgroundColor: '#111827',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#1f293d',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minWidth: 156,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  tooltipHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#f8fafc',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    paddingBottom: 4,
+    marginBottom: 4,
+  },
+  tooltipRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 1,
+  },
+  tooltipDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  tooltipLabel: {
+    fontSize: 11,
+    color: '#cbd5e1',
+    fontWeight: '500',
+  },
+  tooltipValue: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  tooltipDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 3,
+  },
+  tooltipNetLabel: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontWeight: '600',
+  },
+  tooltipCaret: {
+    position: 'absolute',
+    bottom: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#111827',
   },
 });
 
